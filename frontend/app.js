@@ -1,525 +1,901 @@
+// ===================================
+// API Client
+// ===================================
+
 const API = {
-  async request(path, { method = "GET", body } = {}) {
-    const res = await fetch(path, {
-      method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      credentials: "include",
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const msg = data?.error || `Request failed (${res.status})`;
-      const err = new Error(msg);
-      err.status = res.status;
-      err.data = data;
+  async request(path, { method = 'GET', body } = {}) {
+    try {
+      const res = await fetch(path, {
+        method,
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        credentials: 'include',
+        body: body ? JSON.stringify(body) : undefined,
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const msg = data?.error || `Request failed (${res.status})`;
+        const err = new Error(msg);
+        err.status = res.status;
+        err.data = data;
+        throw err;
+      }
+
+      return data;
+    } catch (err) {
+      console.error('API Error:', err);
       throw err;
     }
-    return data;
   },
-  me() {
-    return this.request("/api/auth/me");
-  },
-  signup(payload) {
-    return this.request("/api/auth/signup", { method: "POST", body: payload });
-  },
-  login(payload) {
-    return this.request("/api/auth/login", { method: "POST", body: payload });
-  },
-  logout() {
-    return this.request("/api/auth/logout", { method: "POST" });
-  },
-  getProfile() {
-    return this.request("/api/profile");
-  },
-  updateProfile(payload) {
-    return this.request("/api/profile", { method: "PUT", body: payload });
-  },
-  listUsers({ q = "", role = "" } = {}) {
+
+  // Auth
+  me: () => API.request('/api/auth/me'),
+  signup: (payload) => API.request('/api/auth/signup', { method: 'POST', body: payload }),
+  login: (payload) => API.request('/api/auth/login', { method: 'POST', body: payload }),
+  logout: () => API.request('/api/auth/logout', { method: 'POST' }),
+
+  // Profile
+  getProfile: () => API.request('/api/profile'),
+  updateProfile: (payload) => API.request('/api/profile', { method: 'PUT', body: payload }),
+
+  // Users
+  listUsers: ({ q = '', role = '' } = {}) => {
     const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (role) params.set("role", role);
+    if (q) params.set('q', q);
+    if (role) params.set('role', role);
     const qs = params.toString();
-    return this.request(`/api/users${qs ? `?${qs}` : ""}`);
+    return API.request(`/api/users${qs ? `?${qs}` : ''}`);
   },
-  listSessions() {
-    return this.request("/api/sessions");
-  },
-  createSession(payload) {
-    return this.request("/api/sessions", { method: "POST", body: payload });
-  },
-  updateSessionStatus(sessionId, status) {
-    return this.request(`/api/sessions/${sessionId}/status`, {
-      method: "PUT",
-      body: { status },
-    });
-  },
-  createFeedback(sessionId, payload) {
-    return this.request(`/api/sessions/${sessionId}/feedback`, {
-      method: "POST",
-      body: payload,
-    });
-  },
-  userFeedback(userId) {
-    return this.request(`/api/users/${userId}/feedback`);
-  },
+
+  // Sessions
+  listSessions: () => API.request('/api/sessions'),
+  createSession: (payload) => API.request('/api/sessions', { method: 'POST', body: payload }),
+  updateSessionStatus: (sessionId, status) =>
+    API.request(`/api/sessions/${sessionId}/status`, { method: 'PUT', body: { status } }),
+
+  // Feedback
+  createFeedback: (sessionId, payload) =>
+    API.request(`/api/sessions/${sessionId}/feedback`, { method: 'POST', body: payload }),
+  userFeedback: (userId) => API.request(`/api/users/${userId}/feedback`),
 };
 
-const el = (sel) => document.querySelector(sel);
-const els = (sel) => Array.from(document.querySelectorAll(sel));
+// ===================================
+// State Management
+// ===================================
 
-function setMsg(target, text, ok = false) {
-  target.textContent = text || "";
-  target.classList.toggle("ok", !!ok);
+const state = {
+  user: null,
+  currentView: 'dashboard',
+  sessions: [],
+  mentors: [],
+  currentSessionTab: 'all',
+};
+
+// ===================================
+// UI Utilities
+// ===================================
+
+const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+function showToast(message, type = 'info') {
+  const container = $('#toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation = 'slideIn 0.3s ease-out reverse';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+function showLoading() {
+  $('#loadingOverlay').classList.add('active');
+}
+
+function hideLoading() {
+  $('#loadingOverlay').classList.remove('active');
+}
+
+function showModal(modalId) {
+  $(`#${modalId}`).classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(modalId) {
+  $(`#${modalId}`).classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function setFormMessage(elementId, message, isSuccess = false) {
+  const el = $(`#${elementId}`);
+  if (!el) return;
+
+  el.textContent = message;
+  el.className = 'form-message';
+  if (message) {
+    el.classList.add(isSuccess ? 'success' : 'error');
+  }
 }
 
 function initials(name) {
-  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
-  const a = parts[0]?.[0] || "?";
-  const b = parts.length > 1 ? parts[parts.length - 1][0] : "";
-  return (a + b).toUpperCase();
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function tagify(csv) {
-  return (csv || "")
-    .split(",")
-    .map((x) => x.trim())
-    .filter(Boolean)
-    .slice(0, 10);
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
 }
 
-function badge(status) {
-  const s = status || "pending";
-  const cls = {
-    pending: "badge badge--pending",
-    accepted: "badge badge--accepted",
-    rejected: "badge badge--rejected",
-    completed: "badge badge--completed",
-  }[s] || "badge";
-  return `<span class="${cls}">${s.toUpperCase()}</span>`;
+function debounce(fn, delay) {
+  let timeoutId;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
 }
 
-let state = {
-  me: null,
-  view: "browse",
-  profiles: [],
-  sessions: [],
-};
+// ===================================
+// View Management (Auth Flow)
+// ===================================
 
-function showAuthedUI(authed) {
-  el("#viewAuth").hidden = authed;
-  el("#viewApp").hidden = !authed;
-  el("#navAuthed").hidden = !authed;
+/**
+ * Show landing page for GUEST users (not logged in)
+ * - Shows: Hero, Features, How It Works, CTA
+ * - Navbar: Login & Sign Up buttons
+ * - Hides: App interface (Dashboard, Browse, Sessions, Profile)
+ */
+function showLandingPage() {
+  $('#landingPage').hidden = false;
+  $('#appInterface').hidden = true;
+  $('#navGuest').hidden = false;
+  $('#navAuth').hidden = true;
+  
+  console.log(' Landing page shown - User is NOT logged in');
 }
 
-function switchView(view) {
-  state.view = view;
-  el("#viewTitle").textContent =
-    view === "browse" ? "Browse" : view === "sessions" ? "Sessions" : "My Profile";
-  el("#viewBrowse").hidden = view !== "browse";
-  el("#viewSessions").hidden = view !== "sessions";
-  el("#viewProfile").hidden = view !== "profile";
-  el("#searchInput").disabled = view !== "browse";
-  el("#roleFilter").disabled = view !== "browse";
+/**
+ * Show app interface for AUTHENTICATED users (logged in)
+ * - Shows: Dashboard, Browse, Sessions, Profile
+ * - Navbar: Dashboard, Browse, Sessions, Profile, Logout
+ * - Hides: Landing page
+ */
+function showAppInterface() {
+  $('#landingPage').hidden = true;
+  $('#appInterface').hidden = false;
+  $('#navGuest').hidden = true;
+  $('#navAuth').hidden = false;
+  
+  console.log('App interface shown - User is logged in');
 }
 
-function renderMe() {
-  const me = state.me;
-  el("#meName").textContent = me?.name || "—";
-  el("#meMeta").textContent = me ? `${me.role} • ${me.email}` : "—";
-  el("#meAvatar").textContent = initials(me?.name);
+function switchView(viewName) {
+  state.currentView = viewName;
+
+  // Hide all views
+  $$('.view').forEach((view) => (view.hidden = true));
+
+  // Show selected view
+  $(`#view${viewName.charAt(0).toUpperCase() + viewName.slice(1)}`).hidden = false;
+
+  // Update sidebar active state
+  $$('.sidebar-link').forEach((link) => {
+    link.classList.toggle('active', link.dataset.view === viewName);
+  });
+
+  // Load view data
+  loadViewData(viewName);
 }
 
-function renderProfiles() {
-  const list = el("#profilesList");
-  list.innerHTML = "";
+async function loadViewData(viewName) {
+  try {
+    showLoading();
 
-  if (!state.profiles.length) {
-    el("#profilesEmpty").hidden = false;
+    switch (viewName) {
+      case 'dashboard':
+        await loadDashboard();
+        break;
+      case 'browse':
+        await loadMentors();
+        break;
+      case 'sessions':
+        await loadSessions();
+        break;
+      case 'profile':
+        await loadProfile();
+        break;
+    }
+  } catch (err) {
+    showToast(err.message || 'Failed to load data', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+// ===================================
+// User Profile
+// ===================================
+
+function updateUserProfile(user) {
+  state.user = user;
+  $('#userAvatar').textContent = initials(user.name);
+  $('#userName').textContent = user.name;
+  $('#userRole').textContent = user.role;
+}
+
+// ===================================
+// Dashboard
+// ===================================
+
+async function loadDashboard() {
+  const { sessions } = await API.listSessions();
+  state.sessions = sessions || [];
+
+  // Update stats
+  const total = sessions.length;
+  const pending = sessions.filter((s) => s.status === 'pending').length;
+  const completed = sessions.filter((s) => s.status === 'completed').length;
+
+  $('#statTotalSessions').textContent = total;
+  $('#statPending').textContent = pending;
+  $('#statCompleted').textContent = completed;
+
+  // Show recent sessions
+  const recentSessions = sessions.slice(0, 5);
+  const container = $('#recentSessions');
+
+  if (recentSessions.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        <p>No recent sessions</p>
+      </div>
+    `;
+  } else {
+    container.innerHTML = recentSessions
+      .map(
+        (session) => `
+      <div class="activity-item">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+          <div>
+            <strong>${escapeHtml(session.topic)}</strong>
+            <div style="font-size: 0.875rem; color: var(--gray-500); margin-top: 4px;">
+              With ${escapeHtml(session.mentor?.id === state.user?.id ? session.requester?.name : session.mentor?.name)}
+            </div>
+          </div>
+          <span class="badge badge-${session.status}">${session.status.toUpperCase()}</span>
+        </div>
+      </div>
+    `
+      )
+      .join('');
+  }
+}
+
+// ===================================
+// Browse Mentors
+// ===================================
+
+async function loadMentors(query = '', role = '') {
+  const { users } = await API.listUsers({ q: query, role });
+  state.mentors = users || [];
+
+  renderMentors();
+}
+
+function renderMentors() {
+  const container = $('#mentorsList');
+  const emptyState = $('#mentorsEmpty');
+
+  if (state.mentors.length === 0) {
+    container.innerHTML = '';
+    emptyState.hidden = false;
     return;
   }
-  el("#profilesEmpty").hidden = true;
 
-  for (const u of state.profiles) {
-    const skills = tagify(u.skills);
-    const interests = tagify(u.interests);
-    const tags = [...skills.map((t) => `<span class="tag tag--orange">${escapeHtml(t)}</span>`)]
-      .concat(interests.map((t) => `<span class="tag">${escapeHtml(t)}</span>`))
-      .slice(0, 10)
-      .join("");
+  emptyState.hidden = true;
+  container.innerHTML = state.mentors
+    .map((mentor) => {
+      const skills = (mentor.skills || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 5);
+      const interests = (mentor.interests || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 5);
 
-    const item = document.createElement("div");
-    item.className = "item";
-    item.innerHTML = `
-      <div class="item__top">
-        <div>
-          <div class="item__title">${escapeHtml(u.name)} <span class="tag">${escapeHtml(u.role)}</span></div>
-          <div class="item__meta">${escapeHtml(u.email)}</div>
+      const allTags = [
+        ...skills.map((s) => `<span class="tag tag-skill">${escapeHtml(s)}</span>`),
+        ...interests.map((i) => `<span class="tag">${escapeHtml(i)}</span>`),
+      ];
+
+      return `
+        <div class="mentor-card">
+          <div class="mentor-header">
+            <div class="mentor-avatar">${initials(mentor.name)}</div>
+            <div class="mentor-info">
+              <div class="mentor-name">${escapeHtml(mentor.name)}</div>
+              <span class="mentor-role">${escapeHtml(mentor.role)}</span>
+              <div class="mentor-email">${escapeHtml(mentor.email)}</div>
+            </div>
+          </div>
+          <div class="mentor-bio">${escapeHtml(mentor.bio || 'No bio yet.')}</div>
+          ${
+            allTags.length > 0
+              ? `<div class="mentor-tags">${allTags.join('')}</div>`
+              : '<div class="mentor-tags"><span class="tag">No skills/interests listed</span></div>'
+          }
+          <div class="mentor-actions">
+            <button class="btn btn-primary" data-action="request-session" data-user-id="${mentor.id}">
+              Request Session
+            </button>
+            <button class="btn btn-outline" data-action="view-feedback" data-user-id="${mentor.id}">
+              View Feedback
+            </button>
+          </div>
         </div>
-        <button class="btn btn--primary" data-action="request" data-user="${u.id}">Request</button>
-      </div>
-      <div class="item__body">${escapeHtml(u.bio || "No bio yet.")}</div>
-      <div class="item__tags">${tags || `<span class="muted">No skills/interests listed.</span>`}</div>
-      <div class="item__actions">
-        <button class="btn" data-action="view-feedback" data-user="${u.id}">View feedback</button>
-      </div>
-      <div class="form__msg" data-msg></div>
-    `;
-    list.appendChild(item);
-  }
+      `;
+    })
+    .join('');
 }
 
-function renderSessions() {
-  const list = el("#sessionsList");
-  list.innerHTML = "";
+// ===================================
+// Sessions
+// ===================================
 
-  if (!state.sessions.length) {
-    el("#sessionsEmpty").hidden = false;
-    return;
-  }
-  el("#sessionsEmpty").hidden = true;
-
-  for (const s of state.sessions) {
-    const isMentor = s.mentor?.id === state.me?.id;
-    const other = isMentor ? s.requester : s.mentor;
-
-    const canAcceptReject = isMentor && s.status === "pending";
-    const canComplete =
-      (s.status === "accepted" || s.status === "completed") &&
-      (s.mentor?.id === state.me?.id || s.requester?.id === state.me?.id);
-    const canFeedback = s.status === "completed";
-
-    const when = s.scheduled_time ? new Date(s.scheduled_time).toLocaleString() : "Not scheduled";
-
-    const item = document.createElement("div");
-    item.className = "item";
-    item.innerHTML = `
-      <div class="item__top">
-        <div>
-          <div class="item__title">${escapeHtml(s.topic)} ${badge(s.status)}</div>
-          <div class="item__meta">With ${escapeHtml(other?.name || "—")} • ${escapeHtml(when)}</div>
-        </div>
-      </div>
-      <div class="item__body">${escapeHtml(s.description || "—")}</div>
-      <div class="item__actions">
-        ${
-          canAcceptReject
-            ? `
-              <button class="btn btn--primary" data-action="accept" data-session="${s.id}">Accept</button>
-              <button class="btn" data-action="reject" data-session="${s.id}">Reject</button>
-            `
-            : ""
-        }
-        ${
-          canComplete && s.status !== "completed"
-            ? `<button class="btn" data-action="complete" data-session="${s.id}">Mark completed</button>`
-            : ""
-        }
-        ${
-          canFeedback
-            ? `<button class="btn btn--primary" data-action="feedback" data-session="${s.id}" data-other="${other?.name || ""}">Leave feedback</button>`
-            : ""
-        }
-      </div>
-      <div class="form__msg" data-msg></div>
-    `;
-    list.appendChild(item);
-  }
-}
-
-function escapeHtml(s) {
-  return String(s ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-async function refreshProfiles() {
-  const q = el("#searchInput").value.trim();
-  const role = el("#roleFilter").value;
-  const { users } = await API.listUsers({ q, role });
-  state.profiles = users || [];
-  renderProfiles();
-}
-
-async function refreshSessions() {
+async function loadSessions() {
   const { sessions } = await API.listSessions();
   state.sessions = sessions || [];
   renderSessions();
 }
 
-async function loadProfileForm() {
+function renderSessions() {
+  const container = $('#sessionsList');
+  const emptyState = $('#sessionsEmpty');
+
+  let filteredSessions = state.sessions;
+
+  // Filter by tab
+  if (state.currentSessionTab !== 'all') {
+    filteredSessions = state.sessions.filter((s) => s.status === state.currentSessionTab);
+  }
+
+  if (filteredSessions.length === 0) {
+    container.innerHTML = '';
+    emptyState.hidden = false;
+    return;
+  }
+
+  emptyState.hidden = true;
+  container.innerHTML = filteredSessions
+    .map((session) => {
+      const isMentor = session.mentor?.id === state.user?.id;
+      const otherUser = isMentor ? session.requester : session.mentor;
+      const canAcceptReject = isMentor && session.status === 'pending';
+      const canComplete =
+        (session.status === 'accepted' || session.status === 'completed') &&
+        (session.mentor?.id === state.user?.id || session.requester?.id === state.user?.id);
+      const canFeedback = session.status === 'completed';
+
+      const scheduledTime = session.scheduled_time
+        ? new Date(session.scheduled_time).toLocaleString()
+        : 'Not scheduled';
+
+      return `
+        <div class="session-card">
+          <div class="session-header">
+            <div>
+              <div class="session-title">${escapeHtml(session.topic)}</div>
+              <div class="session-meta">
+                With ${escapeHtml(otherUser?.name || 'Unknown')} • ${scheduledTime}
+              </div>
+            </div>
+            <span class="badge badge-${session.status}">${session.status.toUpperCase()}</span>
+          </div>
+          <div class="session-description">${escapeHtml(session.description || 'No description provided.')}</div>
+          <div class="session-actions">
+            ${
+              canAcceptReject
+                ? `
+              <button class="btn btn-primary" data-action="accept-session" data-session-id="${session.id}">Accept</button>
+              <button class="btn btn-outline" data-action="reject-session" data-session-id="${session.id}">Reject</button>
+            `
+                : ''
+            }
+            ${
+              canComplete && session.status !== 'completed'
+                ? `<button class="btn btn-outline" data-action="complete-session" data-session-id="${session.id}">Mark Completed</button>`
+                : ''
+            }
+            ${
+              canFeedback
+                ? `<button class="btn btn-primary" data-action="leave-feedback" data-session-id="${session.id}" data-other-name="${escapeHtml(
+                    otherUser?.name || ''
+                  )}">Leave Feedback</button>`
+                : ''
+            }
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+// ===================================
+// Profile
+// ===================================
+
+async function loadProfile() {
   const { user } = await API.getProfile();
-  const form = el("#formProfile");
-  form.name.value = user.name || "";
-  form.role.value = user.role || "mentee";
-  form.bio.value = user.bio || "";
-  form.skills.value = user.skills || "";
-  form.interests.value = user.interests || "";
+  const form = $('#formProfile');
+
+  form.name.value = user.name || '';
+  form.role.value = user.role || 'mentee';
+  form.bio.value = user.bio || '';
+  form.skills.value = user.skills || '';
+  form.interests.value = user.interests || '';
 }
 
-function setupTabs() {
-  els(".tab").forEach((t) =>
-    t.addEventListener("click", () => {
-      els(".tab").forEach((x) => x.classList.remove("tab--active"));
-      t.classList.add("tab--active");
-      const which = t.dataset.tab;
-      el("#tabLogin").hidden = which !== "login";
-      el("#tabSignup").hidden = which !== "signup";
-      setMsg(el("#msgLogin"), "");
-      setMsg(el("#msgSignup"), "");
-    }),
-  );
-}
+// ===================================
+// Auth Handlers
+// ===================================
 
-function setupNav() {
-  els("[data-view]").forEach((b) =>
-    b.addEventListener("click", async () => {
-      const view = b.dataset.view;
-      switchView(view);
-      if (view === "browse") await refreshProfiles().catch(() => {});
-      if (view === "sessions") await refreshSessions().catch(() => {});
-      if (view === "profile") await loadProfileForm().catch(() => {});
-    }),
-  );
-}
-
-function setupAuth() {
-  el("#formLogin").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const msg = el("#msgLogin");
-    setMsg(msg, "");
-    try {
-      const payload = Object.fromEntries(new FormData(e.target));
-      const { user } = await API.login(payload);
-      state.me = user;
-      renderMe();
-      showAuthedUI(true);
-      switchView("browse");
-      await refreshProfiles();
-      setMsg(msg, "");
-    } catch (err) {
-      setMsg(msg, err.message || "Login failed.");
-    }
-  });
-
-  el("#formSignup").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const msg = el("#msgSignup");
-    setMsg(msg, "");
-    try {
-      const payload = Object.fromEntries(new FormData(e.target));
-      const { user } = await API.signup(payload);
-      state.me = user;
-      renderMe();
-      showAuthedUI(true);
-      switchView("profile");
-      await loadProfileForm();
-      setMsg(msg, "Account created. Update your profile anytime.", true);
-    } catch (err) {
-      setMsg(msg, err.message || "Signup failed.");
-    }
-  });
-
-  el("#btnLogout").addEventListener("click", async () => {
-    await API.logout().catch(() => {});
-    state = { ...state, me: null, profiles: [], sessions: [] };
-    showAuthedUI(false);
-  });
-}
-
-function setupControls() {
-  el("#btnRefresh").addEventListener("click", async () => {
-    if (state.view === "browse") await refreshProfiles().catch(() => {});
-    if (state.view === "sessions") await refreshSessions().catch(() => {});
-  });
-
-  el("#searchInput").addEventListener("input", debounce(() => refreshProfiles().catch(() => {}), 200));
-  el("#roleFilter").addEventListener("change", () => refreshProfiles().catch(() => {}));
-
-  el("#formProfile").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const msg = el("#msgProfile");
-    setMsg(msg, "");
-    try {
-      const payload = Object.fromEntries(new FormData(e.target));
-      const { user } = await API.updateProfile(payload);
-      state.me = user;
-      renderMe();
-      setMsg(msg, "Profile saved.", true);
-    } catch (err) {
-      setMsg(msg, err.message || "Could not save profile.");
-    }
-  });
-}
-
-function setupListActions() {
-  el("#profilesList").addEventListener("click", async (e) => {
-    const btn = e.target.closest("button");
-    if (!btn) return;
-    const card = e.target.closest(".item");
-    const msg = card?.querySelector("[data-msg]");
-
-    if (btn.dataset.action === "request") {
-      const userId = btn.dataset.user;
-      const user = state.profiles.find((x) => String(x.id) === String(userId));
-      openRequestDialog(user);
-      return;
-    }
-
-    if (btn.dataset.action === "view-feedback") {
-      const userId = btn.dataset.user;
-      setMsg(msg, "");
-      try {
-        const { feedback } = await API.userFeedback(userId);
-        const text =
-          !feedback?.length
-            ? "No feedback yet."
-            : feedback
-                .slice(0, 3)
-                .map((f) => `★${f.rating} — ${f.comment || "(no comment)"}`)
-                .join("  |  ");
-        setMsg(msg, text, true);
-      } catch (err) {
-        setMsg(msg, err.message || "Could not load feedback.");
-      }
-    }
-  });
-
-  el("#sessionsList").addEventListener("click", async (e) => {
-    const btn = e.target.closest("button");
-    if (!btn) return;
-    const card = e.target.closest(".item");
-    const msg = card?.querySelector("[data-msg]");
-    const sessionId = btn.dataset.session;
-
-    try {
-      setMsg(msg, "");
-      if (btn.dataset.action === "accept") {
-        await API.updateSessionStatus(sessionId, "accepted");
-        await refreshSessions();
-        return;
-      }
-      if (btn.dataset.action === "reject") {
-        await API.updateSessionStatus(sessionId, "rejected");
-        await refreshSessions();
-        return;
-      }
-      if (btn.dataset.action === "complete") {
-        await API.updateSessionStatus(sessionId, "completed");
-        await refreshSessions();
-        return;
-      }
-      if (btn.dataset.action === "feedback") {
-        openFeedbackDialog(sessionId, btn.dataset.other || "");
-      }
-    } catch (err) {
-      setMsg(msg, err.message || "Action failed.");
-    }
-  });
-}
-
-function openRequestDialog(user) {
-  const dlg = el("#dlgRequest");
-  const msg = el("#msgRequest");
-  setMsg(msg, "");
-  if (!user) return;
-  el("#requestMentorLine").textContent = `To: ${user.name} (${user.role})`;
-  const form = el("#formRequest");
-  form.mentor_id.value = user.id;
-  form.topic.value = "";
-  form.description.value = "";
-  form.scheduled_time.value = "";
-  dlg.showModal();
-}
-
-function openFeedbackDialog(sessionId, otherName) {
-  const dlg = el("#dlgFeedback");
-  setMsg(el("#msgFeedback"), "");
-  el("#feedbackLine").textContent = otherName ? `For session with ${otherName}` : "—";
-  const form = el("#formFeedback");
-  form.session_id.value = sessionId;
-  form.rating.value = "5";
-  form.comment.value = "";
-  dlg.showModal();
-}
-
-function setupDialogs() {
-  el("#btnCancelRequest").addEventListener("click", () => el("#dlgRequest").close());
-  el("#btnCancelFeedback").addEventListener("click", () => el("#dlgFeedback").close());
-
-  el("#formRequest").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const msg = el("#msgRequest");
-    setMsg(msg, "");
-    try {
-      const payload = Object.fromEntries(new FormData(e.target));
-      payload.mentor_id = Number(payload.mentor_id);
-      if (!payload.scheduled_time) delete payload.scheduled_time;
-      const { session } = await API.createSession(payload);
-      setMsg(msg, "Request sent.", true);
-      el("#dlgRequest").close();
-      if (state.view === "sessions") {
-        await refreshSessions();
-      }
-      // light refresh so users see it quickly
-      await refreshSessions().catch(() => {});
-      switchView("sessions");
-    } catch (err) {
-      setMsg(msg, err.message || "Could not create session.");
-    }
-  });
-
-  el("#formFeedback").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const msg = el("#msgFeedback");
-    setMsg(msg, "");
-    try {
-      const payload = Object.fromEntries(new FormData(e.target));
-      const sessionId = payload.session_id;
-      delete payload.session_id;
-      const { feedback } = await API.createFeedback(sessionId, payload);
-      setMsg(msg, `Feedback submitted (★${feedback.rating}).`, true);
-      el("#dlgFeedback").close();
-      await refreshSessions().catch(() => {});
-    } catch (err) {
-      setMsg(msg, err.message || "Could not submit feedback.");
-    }
-  });
-}
-
-function debounce(fn, ms) {
-  let t = null;
-  return (...args) => {
-    if (t) clearTimeout(t);
-    t = setTimeout(() => fn(...args), ms);
-  };
-}
-
-async function init() {
-  setupTabs();
-  setupNav();
-  setupAuth();
-  setupControls();
-  setupListActions();
-  setupDialogs();
+/**
+ * Handle user login
+ * After successful login:
+ * 1. Close auth modal
+ * 2. Show app interface (hide landing page)
+ * 3. Navigate to Dashboard
+ */
+async function handleLogin(e) {
+  e.preventDefault();
+  setFormMessage('loginMessage', '');
 
   try {
-    const { user } = await API.me();
-    if (user) {
-      state.me = user;
-      renderMe();
-      showAuthedUI(true);
-      switchView("browse");
-      await refreshProfiles();
-    } else {
-      showAuthedUI(false);
-    }
-  } catch {
-    showAuthedUI(false);
+    showLoading();
+    const formData = new FormData(e.target);
+    const payload = Object.fromEntries(formData);
+
+    const { user } = await API.login(payload);
+    
+    //LOGIN SUCCESS
+    console.log(' Login successful:', user.name);
+    updateUserProfile(user);
+    closeModal('authModal');
+    showAppInterface();           // Hide landing, show app
+    switchView('dashboard');      // Go to dashboard
+    showToast('Welcome back!', 'success');
+    
+    // Reset form
+    e.target.reset();
+  } catch (err) {
+    //LOGIN FAILED
+    console.error('Login failed:', err.message);
+    setFormMessage('loginMessage', err.message || 'Login failed');
+  } finally {
+    hideLoading();
   }
 }
 
-init();
+/**
+ * Handle user signup
+ * After successful signup:
+ * 1. Close auth modal
+ * 2. Show app interface (hide landing page)
+ * 3. Navigate to Profile (so they can complete their profile)
+ */
+async function handleSignup(e) {
+  e.preventDefault();
+  setFormMessage('signupMessage', '');
 
+  try {
+    showLoading();
+    const formData = new FormData(e.target);
+    const payload = Object.fromEntries(formData);
+
+    const { user } = await API.signup(payload);
+    
+    //SIGNUP SUCCESS
+    console.log('Signup successful:', user.name);
+    updateUserProfile(user);
+    closeModal('authModal');
+    showAppInterface();           // Hide landing, show app
+    switchView('profile');        // Go to profile to complete setup
+    showToast('Account created successfully!', 'success');
+    
+    // Reset form
+    e.target.reset();
+  } catch (err) {
+    // SIGNUP FAILED
+    console.error('Signup failed:', err.message);
+    setFormMessage('signupMessage', err.message || 'Signup failed');
+  } finally {
+    hideLoading();
+  }
+}
+
+/**
+ * Handle user logout
+ * After logout:
+ * 1. Clear all user data
+ * 2. Show landing page (hide app interface)
+ */
+async function handleLogout() {
+  try {
+    showLoading();
+    await API.logout();
+    
+    // LOGOUT SUCCESS
+    console.log('Logout successful');
+    state.user = null;
+    state.sessions = [];
+    state.mentors = [];
+    showLandingPage();       // Show landing, hide app
+    showToast('Logged out successfully', 'info');
+  } catch (err) {
+    // LOGOUT FAILED
+    console.error('Logout failed:', err.message);
+    showToast('Logout failed', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+// ===================================
+// Session Actions
+// ===================================
+
+async function handleRequestSession(mentorId) {
+  const mentor = state.mentors.find((m) => m.id === Number(mentorId));
+  if (!mentor) return;
+
+  $('#requestMentorInfo').innerHTML = `
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+      <div class="mentor-avatar" style="width: 48px; height: 48px; font-size: 1.125rem;">${initials(mentor.name)}</div>
+      <div>
+        <div style="font-weight: 600;">${escapeHtml(mentor.name)}</div>
+        <div style="font-size: 0.875rem; color: var(--gray-500);">${escapeHtml(mentor.role)}</div>
+      </div>
+    </div>
+  `;
+
+  const form = $('#formRequest');
+  form.mentor_id.value = mentor.id;
+  form.topic.value = '';
+  form.description.value = '';
+  form.scheduled_time.value = '';
+
+  showModal('requestModal');
+}
+
+async function handleSubmitRequest(e) {
+  e.preventDefault();
+  setFormMessage('requestMessage', '');
+
+  try {
+    showLoading();
+    const formData = new FormData(e.target);
+    const payload = Object.fromEntries(formData);
+
+    payload.mentor_id = Number(payload.mentor_id);
+    if (!payload.scheduled_time) delete payload.scheduled_time;
+
+    await API.createSession(payload);
+    closeModal('requestModal');
+    showToast('Session request sent!', 'success');
+
+    if (state.currentView === 'sessions') {
+      await loadSessions();
+    }
+  } catch (err) {
+    setFormMessage('requestMessage', err.message || 'Failed to send request');
+  } finally {
+    hideLoading();
+  }
+}
+
+async function handleSessionStatusUpdate(sessionId, status) {
+  try {
+    showLoading();
+    await API.updateSessionStatus(sessionId, status);
+    await loadSessions();
+    showToast(
+      `Session ${status === 'accepted' ? 'accepted' : status === 'rejected' ? 'rejected' : 'completed'}!`,
+      'success'
+    );
+  } catch (err) {
+    showToast(err.message || 'Failed to update session', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+async function handleLeaveFeedback(sessionId, otherName) {
+  $('#feedbackSessionInfo').innerHTML = `
+    <div style="font-size: 0.875rem; color: var(--gray-600);">
+      Session with <strong>${escapeHtml(otherName)}</strong>
+    </div>
+  `;
+
+  const form = $('#formFeedback');
+  form.session_id.value = sessionId;
+  form.rating.value = '5';
+  form.comment.value = '';
+
+  // Reset star rating
+  $$('#ratingInput .star').forEach((star, index) => {
+    star.classList.toggle('active', index < 5);
+  });
+
+  showModal('feedbackModal');
+}
+
+async function handleSubmitFeedback(e) {
+  e.preventDefault();
+  setFormMessage('feedbackMessage', '');
+
+  try {
+    showLoading();
+    const formData = new FormData(e.target);
+    const sessionId = formData.get('session_id');
+    const payload = {
+      rating: Number(formData.get('rating')),
+      comment: formData.get('comment'),
+    };
+
+    await API.createFeedback(sessionId, payload);
+    closeModal('feedbackModal');
+    showToast('Feedback submitted!', 'success');
+    await loadSessions();
+  } catch (err) {
+    setFormMessage('feedbackMessage', err.message || 'Failed to submit feedback');
+  } finally {
+    hideLoading();
+  }
+}
+
+async function handleViewFeedback(userId) {
+  try {
+    showLoading();
+    const { feedback } = await API.userFeedback(userId);
+
+    if (!feedback || feedback.length === 0) {
+      showToast('No feedback available for this user', 'info');
+      return;
+    }
+
+    const feedbackText = feedback
+      .slice(0, 5)
+      .map((f) => `${f.rating}/5 - ${f.comment || 'No comment'}`)
+      .join('\n');
+
+    alert(`Recent Feedback:\n\n${feedbackText}`);
+  } catch (err) {
+    showToast(err.message || 'Failed to load feedback', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+// ===================================
+// Profile Update
+// ===================================
+
+async function handleProfileUpdate(e) {
+  e.preventDefault();
+  setFormMessage('profileMessage', '');
+
+  try {
+    showLoading();
+    const formData = new FormData(e.target);
+    const payload = Object.fromEntries(formData);
+
+    const { user } = await API.updateProfile(payload);
+    updateUserProfile(user);
+    setFormMessage('profileMessage', 'Profile updated successfully!', true);
+    showToast('Profile updated!', 'success');
+  } catch (err) {
+    setFormMessage('profileMessage', err.message || 'Failed to update profile');
+  } finally {
+    hideLoading();
+  }
+}
+
+// ===================================
+// Event Listeners
+// ===================================
+
+function setupEventListeners() {
+  // Auth modal tabs
+  $$('[data-auth-tab]').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const tabName = tab.dataset.authTab;
+
+      $$('.auth-tab').forEach((t) => t.classList.toggle('active', t === tab));
+      $('#panelLogin').hidden = tabName !== 'login';
+      $('#panelSignup').hidden = tabName !== 'signup';
+
+      setFormMessage('loginMessage', '');
+      setFormMessage('signupMessage', '');
+    });
+  });
+
+  // Auth forms
+  $('#formLogin').addEventListener('submit', handleLogin);
+  $('#formSignup').addEventListener('submit', handleSignup);
+  $('#btnLogout').addEventListener('click', handleLogout);
+
+  // Profile form
+  $('#formProfile').addEventListener('submit', handleProfileUpdate);
+
+  // Request session form
+  $('#formRequest').addEventListener('submit', handleSubmitRequest);
+
+  // Feedback form
+  $('#formFeedback').addEventListener('submit', handleSubmitFeedback);
+
+  // Star rating
+  $$('#ratingInput .star').forEach((star) => {
+    star.addEventListener('click', () => {
+      const rating = star.dataset.rating;
+      $('#formFeedback').rating.value = rating;
+
+      $$('#ratingInput .star').forEach((s, index) => {
+        s.classList.toggle('active', index < rating);
+      });
+    });
+  });
+
+  // View switching
+  $$('[data-view]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      const view = el.dataset.view;
+      switchView(view);
+    });
+  });
+
+  // Session tabs
+  $$('.tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      state.currentSessionTab = tab;
+
+      $$('.tab-btn').forEach((b) => b.classList.toggle('active', b === btn));
+      renderSessions();
+    });
+  });
+
+  // Search and filters
+  $('#searchInput')?.addEventListener(
+    'input',
+    debounce((e) => {
+      const query = e.target.value;
+      const role = $('#roleFilter')?.value || '';
+      loadMentors(query, role);
+    }, 300)
+  );
+
+  $('#roleFilter')?.addEventListener('change', (e) => {
+    const role = e.target.value;
+    const query = $('#searchInput')?.value || '';
+    loadMentors(query, role);
+  });
+
+  $('#btnRefresh')?.addEventListener('click', () => {
+    const query = $('#searchInput')?.value || '';
+    const role = $('#roleFilter')?.value || '';
+    loadMentors(query, role);
+  });
+
+  // Modal actions
+  $$('[data-action="show-login"]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      showModal('authModal');
+      $$('.auth-tab').forEach((t) => t.classList.toggle('active', t.dataset.authTab === 'login'));
+      $('#panelLogin').hidden = false;
+      $('#panelSignup').hidden = true;
+    });
+  });
+
+  $$('[data-action="show-signup"]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      showModal('authModal');
+      $$('.auth-tab').forEach((t) => t.classList.toggle('active', t.dataset.authTab === 'signup'));
+      $('#panelLogin').hidden = true;
+      $('#panelSignup').hidden = false;
+    });
+  });
+
+  $$('[data-action="close-modal"]').forEach((el) => {
+    el.addEventListener('click', () => closeModal('authModal'));
+  });
+
+  $$('[data-action="close-request"]').forEach((el) => {
+    el.addEventListener('click', () => closeModal('requestModal'));
+  });
+
+  $$('[data-action="close-feedback"]').forEach((el) => {
+    el.addEventListener('click', () => closeModal('feedbackModal'));
+  });
+
+  // Delegate mentor/session actions
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+
+    const action = btn.dataset.action;
+
+    if (action === 'request-session') {
+      handleRequestSession(btn.dataset.userId);
+    } else if (action === 'view-feedback') {
+      handleViewFeedback(btn.dataset.userId);
+    } else if (action === 'accept-session') {
+      handleSessionStatusUpdate(btn.dataset.sessionId, 'accepted');
+    } else if (action === 'reject-session') {
+      handleSessionStatusUpdate(btn.dataset.sessionId, 'rejected');
+    } else if (action === 'complete-session') {
+      handleSessionStatusUpdate(btn.dataset.sessionId, 'completed');
+    } else if (action === 'leave-feedback') {
+      handleLeaveFeedback(btn.dataset.sessionId, btn.dataset.otherName);
+    }
+  });
+}
+
+// ===================================
+// Initialization (App Entry Point)
+// ===================================
+
+/**
+ * Initialize the application
+ * 
+ * FLOW:
+ * 1. Check if user is already logged in (via session cookie)
+ * 2. If logged in → Show app interface (Dashboard)
+ * 3. If NOT logged in → Show landing page (Login/Signup)
+ */
+async function init() {
+  setupEventListeners();
+
+  try {
+    showLoading();
+    
+    // Check if user is logged in by calling /api/auth/me
+    const { user } = await API.me();
+
+    if (user) {
+      // USER IS LOGGED IN
+      console.log('User is authenticated:', user.name);
+      updateUserProfile(user);
+      showAppInterface();
+      switchView('dashboard');  // Default view = Dashboard
+    } else {
+      // USER IS NOT LOGGED IN
+      console.log('User is NOT authenticated - showing landing page');
+      showLandingPage();
+    }
+  } catch (err) {
+    // Error checking auth = treat as not logged in
+    console.log('Auth check failed - showing landing page');
+    showLandingPage();
+  } finally {
+    hideLoading();
+  }
+}
+
+// Start the app when page loads
+init();
