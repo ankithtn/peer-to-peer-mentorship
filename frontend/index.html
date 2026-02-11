@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Peer-to-Peer Mentorship</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar__inner">
+        <div class="brand">
+          <div class="brand__logo">P2P</div>
+          <div class="brand__text">
+            <div class="brand__title">Peer Mentorship</div>
+            <div class="brand__subtitle">Study • Mentor • Grow</div>
+          </div>
+        </div>
+
+        <nav class="nav" id="navAuthed" hidden>
+          <button class="nav__btn" data-view="browse">Browse</button>
+          <button class="nav__btn" data-view="sessions">Sessions</button>
+          <button class="nav__btn" data-view="profile">My Profile</button>
+          <button class="nav__btn nav__btn--ghost" id="btnLogout">Logout</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card hero" id="viewAuth">
+        <div class="hero__left">
+          <h1 class="h1">Find the right peer mentor, fast.</h1>
+          <p class="muted">
+            Create a profile, browse by skills/interests, request sessions, and
+            leave feedback after learning together.
+          </p>
+          <div class="pillrow">
+            <span class="pill">Minimal UI</span>
+            <span class="pill">Secure login</span>
+            <span class="pill">Sessions + Feedback</span>
+          </div>
+        </div>
+
+        <div class="hero__right">
+          <div class="tabs">
+            <button class="tab tab--active" data-tab="login">Login</button>
+            <button class="tab" data-tab="signup">Sign up</button>
+          </div>
+
+          <div class="tabpanel" id="tabLogin">
+            <form id="formLogin" class="form">
+              <label class="field">
+                <span>Email</span>
+                <input type="email" name="email" required placeholder="you@example.com" />
+              </label>
+              <label class="field">
+                <span>Password</span>
+                <input type="password" name="password" required placeholder="••••••••" />
+              </label>
+              <button class="btn btn--primary" type="submit">Login</button>
+              <div class="form__msg" id="msgLogin"></div>
+            </form>
+          </div>
+
+          <div class="tabpanel" id="tabSignup" hidden>
+            <form id="formSignup" class="form">
+              <label class="field">
+                <span>Name</span>
+                <input type="text" name="name" required placeholder="Your name" />
+              </label>
+              <label class="field">
+                <span>Email</span>
+                <input type="email" name="email" required placeholder="you@example.com" />
+              </label>
+              <label class="field">
+                <span>Password</span>
+                <input type="password" name="password" required placeholder="Create a password" />
+              </label>
+              <label class="field">
+                <span>Role</span>
+                <select name="role">
+                  <option value="mentee">Mentee</option>
+                  <option value="mentor">Mentor</option>
+                  <option value="both">Both</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Skills (comma-separated)</span>
+                <input type="text" name="skills" placeholder="DSA, Python, SQL" />
+              </label>
+              <label class="field">
+                <span>Interests (comma-separated)</span>
+                <input type="text" name="interests" placeholder="Web dev, ML, Systems" />
+              </label>
+              <button class="btn btn--primary" type="submit">Create account</button>
+              <div class="form__msg" id="msgSignup"></div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid" id="viewApp" hidden>
+        <aside class="card sidebar">
+          <div class="sidebar__me">
+            <div class="avatar" id="meAvatar">?</div>
+            <div>
+              <div class="sidebar__name" id="meName">—</div>
+              <div class="sidebar__meta" id="meMeta">—</div>
+            </div>
+          </div>
+          <div class="sidebar__hint muted">
+            Tip: Search by skill, interest, or name. Request a session from a
+            profile card.
+          </div>
+        </aside>
+
+        <section class="card content">
+          <div class="content__header">
+            <h2 class="h2" id="viewTitle">Browse</h2>
+            <div class="actions">
+              <input
+                class="input"
+                id="searchInput"
+                placeholder="Search profiles…"
+                autocomplete="off"
+              />
+              <select class="input" id="roleFilter">
+                <option value="">All roles</option>
+                <option value="mentor">Mentor</option>
+                <option value="mentee">Mentee</option>
+                <option value="both">Both</option>
+              </select>
+              <button class="btn" id="btnRefresh">Refresh</button>
+            </div>
+          </div>
+
+          <div id="viewBrowse">
+            <div class="list" id="profilesList"></div>
+            <div class="empty muted" id="profilesEmpty" hidden>No profiles found.</div>
+          </div>
+
+          <div id="viewSessions" hidden>
+            <div class="list" id="sessionsList"></div>
+            <div class="empty muted" id="sessionsEmpty" hidden>No sessions yet.</div>
+          </div>
+
+          <div id="viewProfile" hidden>
+            <form id="formProfile" class="form form--wide">
+              <div class="row">
+                <label class="field">
+                  <span>Name</span>
+                  <input type="text" name="name" required />
+                </label>
+                <label class="field">
+                  <span>Role</span>
+                  <select name="role">
+                    <option value="mentee">Mentee</option>
+                    <option value="mentor">Mentor</option>
+                    <option value="both">Both</option>
+                  </select>
+                </label>
+              </div>
+              <label class="field">
+                <span>Bio</span>
+                <textarea name="bio" rows="3" placeholder="A short intro…"></textarea>
+              </label>
+              <div class="row">
+                <label class="field">
+                  <span>Skills</span>
+                  <input type="text" name="skills" placeholder="Comma-separated" />
+                </label>
+                <label class="field">
+                  <span>Interests</span>
+                  <input type="text" name="interests" placeholder="Comma-separated" />
+                </label>
+              </div>
+              <button class="btn btn--primary" type="submit">Save profile</button>
+              <div class="form__msg" id="msgProfile"></div>
+            </form>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <dialog class="dialog" id="dlgRequest">
+      <form class="dialog__card" method="dialog" id="formRequest">
+        <div class="dialog__header">
+          <div>
+            <div class="dialog__title">Request a session</div>
+            <div class="muted" id="requestMentorLine">—</div>
+          </div>
+          <button class="iconbtn" value="cancel" aria-label="Close">✕</button>
+        </div>
+
+        <input type="hidden" name="mentor_id" />
+
+        <label class="field">
+          <span>Topic</span>
+          <input name="topic" required placeholder="e.g., SQL joins, DSA, React basics" />
+        </label>
+        <label class="field">
+          <span>Description (optional)</span>
+          <textarea name="description" rows="3" placeholder="What do you want to cover?"></textarea>
+        </label>
+        <label class="field">
+          <span>Scheduled time (optional)</span>
+          <input name="scheduled_time" placeholder="YYYY-MM-DDTHH:MM (e.g., 2026-02-11T18:30)" />
+        </label>
+
+        <div class="dialog__actions">
+          <button class="btn" value="cancel" type="button" id="btnCancelRequest">Cancel</button>
+          <button class="btn btn--primary" type="submit">Send request</button>
+        </div>
+        <div class="form__msg" id="msgRequest"></div>
+      </form>
+    </dialog>
+
+    <dialog class="dialog" id="dlgFeedback">
+      <form class="dialog__card" method="dialog" id="formFeedback">
+        <div class="dialog__header">
+          <div>
+            <div class="dialog__title">Leave feedback</div>
+            <div class="muted" id="feedbackLine">—</div>
+          </div>
+          <button class="iconbtn" value="cancel" aria-label="Close">✕</button>
+        </div>
+
+        <input type="hidden" name="session_id" />
+
+        <label class="field">
+          <span>Rating</span>
+          <select name="rating" required>
+            <option value="5">5 - Excellent</option>
+            <option value="4">4 - Great</option>
+            <option value="3">3 - Good</option>
+            <option value="2">2 - Okay</option>
+            <option value="1">1 - Poor</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Comment (optional)</span>
+          <textarea name="comment" rows="3" placeholder="What went well? What could improve?"></textarea>
+        </label>
+
+        <div class="dialog__actions">
+          <button class="btn" value="cancel" type="button" id="btnCancelFeedback">Cancel</button>
+          <button class="btn btn--primary" type="submit">Submit feedback</button>
+        </div>
+        <div class="form__msg" id="msgFeedback"></div>
+      </form>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
+
