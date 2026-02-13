@@ -51,8 +51,11 @@ const API = {
   // Sessions
   listSessions: () => API.request('/api/sessions'),
   createSession: (payload) => API.request('/api/sessions', { method: 'POST', body: payload }),
-  updateSessionStatus: (sessionId, status) =>
-    API.request(`/api/sessions/${sessionId}/status`, { method: 'PUT', body: { status } }),
+  updateSessionStatus: (sessionId, status, meetingLink) =>
+    API.request(`/api/sessions/${sessionId}/status`, { 
+      method: 'PUT', 
+      body: { status, meeting_link: meetingLink || '' } 
+    }),
 
   // Feedback
   createFeedback: (sessionId, payload) =>
@@ -158,7 +161,7 @@ function showLandingPage() {
   $('#navGuest').hidden = false;
   $('#navAuth').hidden = true;
   
-  console.log(' Landing page shown - User is NOT logged in');
+  console.log('🏠 Landing page shown - User is NOT logged in');
 }
 
 /**
@@ -173,7 +176,7 @@ function showAppInterface() {
   $('#navGuest').hidden = true;
   $('#navAuth').hidden = false;
   
-  console.log('App interface shown - User is logged in');
+  console.log('✅ App interface shown - User is logged in');
 }
 
 function switchView(viewName) {
@@ -238,47 +241,128 @@ async function loadDashboard() {
   const { sessions } = await API.listSessions();
   state.sessions = sessions || [];
 
-  // Update stats
+  const user = state.user;
+  const isMentor = user.role === 'mentor' || user.role === 'both';
+  const isMentee = user.role === 'mentee' || user.role === 'both';
+
+  // Calculate stats based on role
   const total = sessions.length;
-  const pending = sessions.filter((s) => s.status === 'pending').length;
-  const completed = sessions.filter((s) => s.status === 'completed').length;
+  let pending = 0;
+  let completed = 0;
+  let incomingRequests = [];
+  let sentRequests = [];
+
+  sessions.forEach((s) => {
+    if (s.status === 'pending') pending++;
+    if (s.status === 'completed') completed++;
+    
+    // Separate incoming vs sent requests
+    if (s.mentor?.id === user.id) {
+      incomingRequests.push(s);
+    } else {
+      sentRequests.push(s);
+    }
+  });
 
   $('#statTotalSessions').textContent = total;
   $('#statPending').textContent = pending;
   $('#statCompleted').textContent = completed;
 
-  // Show recent sessions
-  const recentSessions = sessions.slice(0, 5);
-  const container = $('#recentSessions');
-
-  if (recentSessions.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-        <p>No recent sessions</p>
-      </div>
-    `;
-  } else {
-    container.innerHTML = recentSessions
-      .map(
-        (session) => `
-      <div class="activity-item">
-        <div style="display: flex; justify-content: space-between; align-items: start;">
-          <div>
-            <strong>${escapeHtml(session.topic)}</strong>
-            <div style="font-size: 0.875rem; color: var(--gray-500); margin-top: 4px;">
-              With ${escapeHtml(session.mentor?.id === state.user?.id ? session.requester?.name : session.mentor?.name)}
+  // Render role-specific dashboard
+  const dashboardContent = $('#dashboardContent');
+  
+  if (isMentor) {
+    // MENTOR VIEW: Show incoming requests
+    dashboardContent.innerHTML = `
+      <div class="dashboard-section">
+        <h2 class="section-heading">Incoming Session Requests</h2>
+        <div class="sessions-list" id="incomingRequests">
+          ${incomingRequests.length === 0 ? `
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p>No incoming requests</p>
             </div>
-          </div>
-          <span class="badge badge-${session.status}">${session.status.toUpperCase()}</span>
+          ` : incomingRequests.slice(0, 5).map((session) => renderSessionCard(session, true)).join('')}
         </div>
       </div>
-    `
-      )
-      .join('');
+      
+      <div class="dashboard-section">
+        <h2 class="section-heading">Recent Activity</h2>
+        <div class="activity-list" id="recentActivity">
+          ${sessions.slice(0, 5).map((s) => `
+            <div class="activity-item">
+              <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div>
+                  <strong>${escapeHtml(s.topic)}</strong>
+                  <div style="font-size: 0.875rem; color: var(--gray-500); margin-top: 4px;">
+                    With ${escapeHtml(s.requester?.name || 'Unknown')}
+                  </div>
+                </div>
+                <span class="badge badge-${s.status}">${s.status.toUpperCase()}</span>
+              </div>
+            </div>
+          `).join('') || '<p style="color: var(--gray-500); text-align: center; padding: 20px;">No activity yet</p>'}
+        </div>
+      </div>
+    `;
+  } else if (isMentee) {
+    // MENTEE VIEW: Show sent requests
+    dashboardContent.innerHTML = `
+      <div class="dashboard-section">
+        <h2 class="section-heading">My Session Requests</h2>
+        <div class="sessions-list" id="sentRequests">
+          ${sentRequests.length === 0 ? `
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <p>You haven't requested any sessions yet</p>
+              <button class="btn btn-primary" data-view="browse">Browse Mentors</button>
+            </div>
+          ` : sentRequests.slice(0, 5).map((session) => renderSessionCard(session, false)).join('')}
+        </div>
+      </div>
+      
+      <div class="dashboard-section">
+        <h2 class="section-heading">Suggested Mentors</h2>
+        <div class="mentor-suggestions" id="suggestedMentors">
+          <p style="color: var(--gray-500); text-align: center; padding: 20px;">
+            <button class="btn btn-primary" data-view="browse">Find Mentors</button>
+          </p>
+        </div>
+      </div>
+    `;
   }
+}
+
+// Helper to render session card for dashboard
+function renderSessionCard(session, showActions) {
+  const otherUser = session.requester;
+  const canAcceptReject = showActions && session.status === 'pending';
+  
+  return `
+    <div class="session-card">
+      <div class="session-header">
+        <div>
+          <div class="session-title">${escapeHtml(session.topic)}</div>
+          <div class="session-meta">
+            From ${escapeHtml(otherUser?.name || 'Unknown')}
+            ${session.scheduled_time ? ' • ' + new Date(session.scheduled_time).toLocaleString() : ''}
+          </div>
+        </div>
+        <span class="badge badge-${session.status}">${session.status.toUpperCase()}</span>
+      </div>
+      <div class="session-description">${escapeHtml(session.description || 'No description provided.')}</div>
+      ${canAcceptReject ? `
+        <div class="session-actions">
+          <button class="btn btn-primary" data-action="accept-session" data-session-id="${session.id}">Accept</button>
+          <button class="btn btn-outline" data-action="reject-session" data-session-id="${session.id}">Reject</button>
+        </div>
+      ` : ''}
+    </div>
+  `;
 }
 
 // ===================================
@@ -321,6 +405,17 @@ function renderMentors() {
         ...interests.map((i) => `<span class="tag">${escapeHtml(i)}</span>`),
       ];
 
+      // Rating display
+      const ratingHtml = mentor.average_rating 
+        ? `
+          <div class="mentor-rating">
+            <span class="stars">★</span>
+            <span style="font-weight: 600;">${mentor.average_rating}</span>
+            <span style="color: var(--gray-500);">(${mentor.total_reviews} reviews)</span>
+          </div>
+        `
+        : '<div class="mentor-rating" style="color: var(--gray-500); font-size: 0.875rem;">No reviews yet</div>';
+
       return `
         <div class="mentor-card">
           <div class="mentor-header">
@@ -328,9 +423,9 @@ function renderMentors() {
             <div class="mentor-info">
               <div class="mentor-name">${escapeHtml(mentor.name)}</div>
               <span class="mentor-role">${escapeHtml(mentor.role)}</span>
-              <div class="mentor-email">${escapeHtml(mentor.email)}</div>
             </div>
           </div>
+          ${ratingHtml}
           <div class="mentor-bio">${escapeHtml(mentor.bio || 'No bio yet.')}</div>
           ${
             allTags.length > 0
@@ -392,6 +487,16 @@ function renderSessions() {
       const scheduledTime = session.scheduled_time
         ? new Date(session.scheduled_time).toLocaleString()
         : 'Not scheduled';
+      
+      // Show meeting link if available
+      const meetingLinkHtml = session.meeting_link 
+        ? `<div style="margin-top: 8px;">
+             <strong>Meeting Link:</strong> 
+             <a href="${escapeHtml(session.meeting_link)}" target="_blank" class="link-primary">
+               Join Meeting →
+             </a>
+           </div>`
+        : '';
 
       return `
         <div class="session-card">
@@ -405,6 +510,7 @@ function renderSessions() {
             <span class="badge badge-${session.status}">${session.status.toUpperCase()}</span>
           </div>
           <div class="session-description">${escapeHtml(session.description || 'No description provided.')}</div>
+          ${meetingLinkHtml}
           <div class="session-actions">
             ${
               canAcceptReject
@@ -470,8 +576,8 @@ async function handleLogin(e) {
 
     const { user } = await API.login(payload);
     
-    //LOGIN SUCCESS
-    console.log(' Login successful:', user.name);
+    // ✅ LOGIN SUCCESS
+    console.log('✅ Login successful:', user.name);
     updateUserProfile(user);
     closeModal('authModal');
     showAppInterface();           // Hide landing, show app
@@ -481,8 +587,8 @@ async function handleLogin(e) {
     // Reset form
     e.target.reset();
   } catch (err) {
-    //LOGIN FAILED
-    console.error('Login failed:', err.message);
+    // ❌ LOGIN FAILED
+    console.error('❌ Login failed:', err.message);
     setFormMessage('loginMessage', err.message || 'Login failed');
   } finally {
     hideLoading();
@@ -507,8 +613,8 @@ async function handleSignup(e) {
 
     const { user } = await API.signup(payload);
     
-    //SIGNUP SUCCESS
-    console.log('Signup successful:', user.name);
+    // ✅ SIGNUP SUCCESS
+    console.log('✅ Signup successful:', user.name);
     updateUserProfile(user);
     closeModal('authModal');
     showAppInterface();           // Hide landing, show app
@@ -518,8 +624,8 @@ async function handleSignup(e) {
     // Reset form
     e.target.reset();
   } catch (err) {
-    // SIGNUP FAILED
-    console.error('Signup failed:', err.message);
+    // ❌ SIGNUP FAILED
+    console.error('❌ Signup failed:', err.message);
     setFormMessage('signupMessage', err.message || 'Signup failed');
   } finally {
     hideLoading();
@@ -537,16 +643,16 @@ async function handleLogout() {
     showLoading();
     await API.logout();
     
-    // LOGOUT SUCCESS
-    console.log('Logout successful');
+    // ✅ LOGOUT SUCCESS
+    console.log('✅ Logout successful');
     state.user = null;
     state.sessions = [];
     state.mentors = [];
-    showLandingPage();       // Show landing, hide app
+    showLandingPage();            // Show landing, hide app
     showToast('Logged out successfully', 'info');
   } catch (err) {
-    // LOGOUT FAILED
-    console.error('Logout failed:', err.message);
+    // ❌ LOGOUT FAILED
+    console.error('❌ Logout failed:', err.message);
     showToast('Logout failed', 'error');
   } finally {
     hideLoading();
@@ -608,13 +714,29 @@ async function handleSubmitRequest(e) {
 
 async function handleSessionStatusUpdate(sessionId, status) {
   try {
+    let meetingLink = '';
+    
+    // If accepting, prompt for meeting link
+    if (status === 'accepted') {
+      meetingLink = prompt('Enter meeting link (Zoom, Google Meet, etc.) - Optional:') || '';
+    }
+    
     showLoading();
-    await API.updateSessionStatus(sessionId, status);
+    await API.updateSessionStatus(sessionId, status, meetingLink);
     await loadSessions();
-    showToast(
-      `Session ${status === 'accepted' ? 'accepted' : status === 'rejected' ? 'rejected' : 'completed'}!`,
-      'success'
-    );
+    
+    let message = status === 'accepted' 
+      ? 'Session accepted! The mentee has been notified.'
+      : status === 'rejected' 
+      ? 'Session rejected.'
+      : 'Session marked as completed!';
+    
+    showToast(message, 'success');
+    
+    // Reload dashboard if we're on it
+    if (state.currentView === 'dashboard') {
+      await loadDashboard();
+    }
   } catch (err) {
     showToast(err.message || 'Failed to update session', 'error');
   } finally {
@@ -678,7 +800,7 @@ async function handleViewFeedback(userId) {
 
     const feedbackText = feedback
       .slice(0, 5)
-      .map((f) => `${f.rating}/5 - ${f.comment || 'No comment'}`)
+      .map((f) => `⭐ ${f.rating}/5 - ${f.comment || 'No comment'}`)
       .join('\n');
 
     alert(`Recent Feedback:\n\n${feedbackText}`);
@@ -878,19 +1000,19 @@ async function init() {
     const { user } = await API.me();
 
     if (user) {
-      // USER IS LOGGED IN
-      console.log('User is authenticated:', user.name);
+      // ✅ USER IS LOGGED IN
+      console.log('✅ User is authenticated:', user.name);
       updateUserProfile(user);
       showAppInterface();
       switchView('dashboard');  // Default view = Dashboard
     } else {
-      // USER IS NOT LOGGED IN
-      console.log('User is NOT authenticated - showing landing page');
+      // ❌ USER IS NOT LOGGED IN
+      console.log('❌ User is NOT authenticated - showing landing page');
       showLandingPage();
     }
   } catch (err) {
     // Error checking auth = treat as not logged in
-    console.log('Auth check failed - showing landing page');
+    console.log('⚠️ Auth check failed - showing landing page');
     showLandingPage();
   } finally {
     hideLoading();

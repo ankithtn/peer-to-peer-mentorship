@@ -28,6 +28,8 @@
 
           <!-- Guest Navigation (Only visible when NOT logged in) -->
           <div class="nav-links" id="navGuest">
+            <a href="#features" class="nav-link">Features</a>
+            <a href="#how-it-works" class="nav-link">How It Works</a>
             <a href="#" class="nav-link" data-action="show-login">Login</a>
             <button class="btn btn-primary" data-action="show-signup">Get Started</button>
           </div>
@@ -161,6 +163,41 @@
         </div>
       </section>
 
+      <!-- How It Works -->
+      <section class="how-it-works" id="how-it-works">
+        <div class="container">
+          <div class="section-header">
+            <h2 class="section-title">How it works</h2>
+            <p class="section-subtitle">Get started in just a few simple steps</p>
+          </div>
+          <div class="steps">
+            <div class="step">
+              <div class="step-number">1</div>
+              <h3 class="step-title">Create Your Profile</h3>
+              <p class="step-desc">Sign up and tell us about your skills, interests, and learning goals</p>
+            </div>
+            <div class="step-connector"></div>
+            <div class="step">
+              <div class="step-number">2</div>
+              <h3 class="step-title">Find Your Mentor</h3>
+              <p class="step-desc">Browse profiles and find mentors who match your needs</p>
+            </div>
+            <div class="step-connector"></div>
+            <div class="step">
+              <div class="step-number">3</div>
+              <h3 class="step-title">Book a Session</h3>
+              <p class="step-desc">Request a session and schedule it at a convenient time</p>
+            </div>
+            <div class="step-connector"></div>
+            <div class="step">
+              <div class="step-number">4</div>
+              <h3 class="step-title">Learn & Grow</h3>
+              <p class="step-desc">Connect, learn, and leave feedback to help others</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- CTA Section -->
       <section class="cta-section">
         <div class="container">
@@ -263,18 +300,8 @@
               </div>
             </div>
 
-            <div class="dashboard-content">
-              <div class="recent-activity">
-                <h2 class="section-heading">Recent Sessions</h2>
-                <div class="activity-list" id="recentSessions">
-                  <div class="empty-state">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <p>No recent sessions</p>
-                  </div>
-                </div>
-              </div>
+            <div class="dashboard-content" id="dashboardContent">
+              <!-- Role-specific content will be inserted here by JavaScript -->
             </div>
           </div>
 
