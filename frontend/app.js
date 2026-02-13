@@ -161,7 +161,7 @@ function showLandingPage() {
   $('#navGuest').hidden = false;
   $('#navAuth').hidden = true;
   
-  console.log('🏠 Landing page shown - User is NOT logged in');
+  console.log(' Landing page shown - User is NOT logged in');
 }
 
 /**
@@ -176,7 +176,7 @@ function showAppInterface() {
   $('#navGuest').hidden = true;
   $('#navAuth').hidden = false;
   
-  console.log('✅ App interface shown - User is logged in');
+  console.log('App interface shown - User is logged in');
 }
 
 function switchView(viewName) {
@@ -481,7 +481,7 @@ function renderSessions() {
       const canAcceptReject = isMentor && session.status === 'pending';
       const canComplete =
         (session.status === 'accepted' || session.status === 'completed') &&
-        (session.mentor?.id === state.user?.id || session.requester?.id === state.user?.id);
+        (session.requester?.id === state.user?.id);  // Only mentee (requester) can mark completed
       const canFeedback = session.status === 'completed';
 
       const scheduledTime = session.scheduled_time
@@ -552,6 +552,15 @@ async function loadProfile() {
   form.bio.value = user.bio || '';
   form.skills.value = user.skills || '';
   form.interests.value = user.interests || '';
+  form.experience.value = user.experience || '';
+
+  // Show/hide experience section based on role
+  const experienceSection = $('#experienceSection');
+  if (user.role === 'mentor' || user.role === 'both') {
+    experienceSection.style.display = 'block';
+  } else {
+    experienceSection.style.display = 'none';
+  }
 }
 
 // ===================================
@@ -576,8 +585,8 @@ async function handleLogin(e) {
 
     const { user } = await API.login(payload);
     
-    // ✅ LOGIN SUCCESS
-    console.log('✅ Login successful:', user.name);
+    // LOGIN SUCCESS
+    console.log('login successful:', user.name);
     updateUserProfile(user);
     closeModal('authModal');
     showAppInterface();           // Hide landing, show app
@@ -587,8 +596,8 @@ async function handleLogin(e) {
     // Reset form
     e.target.reset();
   } catch (err) {
-    // ❌ LOGIN FAILED
-    console.error('❌ Login failed:', err.message);
+    // LOGIN FAILED
+    console.error('Login failed:', err.message);
     setFormMessage('loginMessage', err.message || 'Login failed');
   } finally {
     hideLoading();
@@ -613,8 +622,8 @@ async function handleSignup(e) {
 
     const { user } = await API.signup(payload);
     
-    // ✅ SIGNUP SUCCESS
-    console.log('✅ Signup successful:', user.name);
+    // SIGNUP SUCCESS
+    console.log('Signup successful:', user.name);
     updateUserProfile(user);
     closeModal('authModal');
     showAppInterface();           // Hide landing, show app
@@ -624,8 +633,8 @@ async function handleSignup(e) {
     // Reset form
     e.target.reset();
   } catch (err) {
-    // ❌ SIGNUP FAILED
-    console.error('❌ Signup failed:', err.message);
+    // SIGNUP FAILED
+    console.error('Signup failed:', err.message);
     setFormMessage('signupMessage', err.message || 'Signup failed');
   } finally {
     hideLoading();
@@ -643,16 +652,16 @@ async function handleLogout() {
     showLoading();
     await API.logout();
     
-    // ✅ LOGOUT SUCCESS
-    console.log('✅ Logout successful');
+    // LOGOUT SUCCESS
+    console.log('Logout successful');
     state.user = null;
     state.sessions = [];
     state.mentors = [];
     showLandingPage();            // Show landing, hide app
     showToast('Logged out successfully', 'info');
   } catch (err) {
-    // ❌ LOGOUT FAILED
-    console.error('❌ Logout failed:', err.message);
+    // LOGOUT FAILED
+    console.error('Logout failed:', err.message);
     showToast('Logout failed', 'error');
   } finally {
     hideLoading();
@@ -701,10 +710,9 @@ async function handleSubmitRequest(e) {
     await API.createSession(payload);
     closeModal('requestModal');
     showToast('Session request sent!', 'success');
-
-    if (state.currentView === 'sessions') {
-      await loadSessions();
-    }
+    
+    // Redirect to sessions page
+    switchView('sessions');
   } catch (err) {
     setFormMessage('requestMessage', err.message || 'Failed to send request');
   } finally {
@@ -714,20 +722,19 @@ async function handleSubmitRequest(e) {
 
 async function handleSessionStatusUpdate(sessionId, status) {
   try {
-    let meetingLink = '';
-    
-    // If accepting, prompt for meeting link
+    // If accepting, show meeting link modal
     if (status === 'accepted') {
-      meetingLink = prompt('Enter meeting link (Zoom, Google Meet, etc.) - Optional:') || '';
+      $('#meetingLinkSessionId').value = sessionId;
+      $('#meetingLinkInput').value = '';
+      showModal('meetingLinkModal');
+      return; // Don't proceed yet, wait for form submission
     }
     
     showLoading();
-    await API.updateSessionStatus(sessionId, status, meetingLink);
+    await API.updateSessionStatus(sessionId, status, '');
     await loadSessions();
     
-    let message = status === 'accepted' 
-      ? 'Session accepted! The mentee has been notified.'
-      : status === 'rejected' 
+    let message = status === 'rejected' 
       ? 'Session rejected.'
       : 'Session marked as completed!';
     
@@ -739,6 +746,31 @@ async function handleSessionStatusUpdate(sessionId, status) {
     }
   } catch (err) {
     showToast(err.message || 'Failed to update session', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+//  function to handle meeting link form submission
+async function handleMeetingLinkSubmit(e) {
+  e.preventDefault();
+  
+  try {
+    showLoading();
+    const sessionId = $('#meetingLinkSessionId').value;
+    const meetingLink = $('#meetingLinkInput').value.trim();
+    
+    await API.updateSessionStatus(sessionId, 'accepted', meetingLink);
+    closeModal('meetingLinkModal');
+    await loadSessions();
+    
+    showToast('Session accepted! The mentee has been notified.', 'success');
+    
+    if (state.currentView === 'dashboard') {
+      await loadDashboard();
+    }
+  } catch (err) {
+    showToast(err.message || 'Failed to accept session', 'error');
   } finally {
     hideLoading();
   }
@@ -800,7 +832,7 @@ async function handleViewFeedback(userId) {
 
     const feedbackText = feedback
       .slice(0, 5)
-      .map((f) => `⭐ ${f.rating}/5 - ${f.comment || 'No comment'}`)
+      .map((f) => `${f.rating}/5 - ${f.comment || 'No comment'}`)
       .join('\n');
 
     alert(`Recent Feedback:\n\n${feedbackText}`);
@@ -867,6 +899,13 @@ function setupEventListeners() {
 
   // Feedback form
   $('#formFeedback').addEventListener('submit', handleSubmitFeedback);
+
+  // Meeting link form
+  $('#formMeetingLink').addEventListener('submit', handleMeetingLinkSubmit);
+
+  $$('[data-action="close-meeting-link"]').forEach((el) => {
+    el.addEventListener('click', () => closeModal('meetingLinkModal'));
+  });
 
   // Star rating
   $$('#ratingInput .star').forEach((star) => {
@@ -1000,19 +1039,19 @@ async function init() {
     const { user } = await API.me();
 
     if (user) {
-      // ✅ USER IS LOGGED IN
-      console.log('✅ User is authenticated:', user.name);
+      // USER IS LOGGED IN
+      console.log('User is authenticated:', user.name);
       updateUserProfile(user);
       showAppInterface();
       switchView('dashboard');  // Default view = Dashboard
     } else {
-      // ❌ USER IS NOT LOGGED IN
-      console.log('❌ User is NOT authenticated - showing landing page');
+      // USER IS NOT LOGGED IN
+      console.log(' User is NOT authenticated - showing landing page');
       showLandingPage();
     }
   } catch (err) {
     // Error checking auth = treat as not logged in
-    console.log('⚠️ Auth check failed - showing landing page');
+    console.log('Auth check failed - showing landing page');
     showLandingPage();
   } finally {
     hideLoading();

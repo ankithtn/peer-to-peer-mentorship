@@ -28,9 +28,7 @@
 
           <!-- Guest Navigation (Only visible when NOT logged in) -->
           <div class="nav-links" id="navGuest">
-            <a href="#features" class="nav-link">Features</a>
-            <a href="#how-it-works" class="nav-link">How It Works</a>
-            <a href="#" class="nav-link" data-action="show-login">Login</a>
+            <a href="#" class="nav-link" data-action="show-login">Sign In</a>
             <button class="btn btn-primary" data-action="show-signup">Get Started</button>
           </div>
 
@@ -55,61 +53,23 @@
     <!-- Landing Page (Unauthenticated) -->
     <div id="landingPage">
       <!-- Hero Section -->
-      <section class="hero">
+      <section class="hero-minimal">
         <div class="container">
-          <div class="hero-content">
-            <div class="hero-left">
-              <h1 class="hero-title">
-                Learn from peers who've
-                <span class="gradient-text">been there</span>
-              </h1>
-              <p class="hero-subtitle">
-                Connect with experienced students and mentors. Share knowledge, 
-                grow together, and accelerate your learning journey.
-              </p>
-              <div class="hero-cta">
-                <button class="btn btn-primary btn-lg" data-action="show-signup">
-                  Start Learning Today
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </button>
-                <button class="btn btn-outline btn-lg" data-action="show-login">Sign In</button>
-              </div>
-              <div class="hero-stats">
-                <div class="stat">
-                  <div class="stat-value">500+</div>
-                  <div class="stat-label">Active Mentors</div>
-                </div>
-                <div class="stat">
-                  <div class="stat-value">2,000+</div>
-                  <div class="stat-label">Sessions Completed</div>
-                </div>
-                <div class="stat">
-                  <div class="stat-value">4.8/5</div>
-                  <div class="stat-label">Avg Rating</div>
-                </div>
-              </div>
-            </div>
-            <div class="hero-right">
-              <div class="hero-illustration">
-                <div class="float-card card-1">
-                  <div class="avatar-group">
-                    <div class="avatar">JS</div>
-                    <div class="avatar">PY</div>
-                    <div class="avatar">DB</div>
-                  </div>
-                  <div class="card-text">50+ Skills Available</div>
-                </div>
-                <div class="float-card card-2">
-                  <div class="rating-stars">★★★★★</div>
-                  <div class="card-text">Top Rated Mentors</div>
-                </div>
-                <div class="float-card card-3">
-                  <div class="pulse-dot"></div>
-                  <div class="card-text">Live Sessions</div>
-                </div>
-              </div>
+          <div class="hero-content-minimal">
+            <h1 class="hero-title-minimal">
+              Learn from peers<br/>who've <span class="gradient-text-minimal">been there</span>
+            </h1>
+            <p class="hero-subtitle-minimal">
+              Connect with experienced students. Share knowledge,<br/>
+              grow together, and accelerate your learning.
+            </p>
+            <div class="hero-cta-minimal">
+              <button class="btn btn-primary btn-lg" data-action="show-signup">
+                Get Started
+              </button>
+              <button class="btn btn-ghost btn-lg" data-action="show-login">
+                Sign In
+              </button>
             </div>
           </div>
         </div>
@@ -421,6 +381,14 @@
                 </div>
               </div>
 
+              <div class="form-section" id="experienceSection">
+                <h3 class="form-section-title">Experience (Mentors Only)</h3>
+                <div class="form-group">
+                  <label class="form-label">Your Experience</label>
+                  <textarea class="form-input" name="experience" rows="4" placeholder="Share your experience, achievements, projects..."></textarea>
+                </div>
+              </div>
+
               <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Save Changes</button>
               </div>
@@ -580,6 +548,42 @@
               <button type="submit" class="btn btn-primary">Submit Feedback</button>
             </div>
             <div class="form-message" id="feedbackMessage"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Meeting Link Modal -->
+    <div class="modal" id="meetingLinkModal">
+      <div class="modal-overlay" data-action="close-meeting-link"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Add Meeting Link</h3>
+          <button class="modal-close" data-action="close-meeting-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p style="color: var(--gray-600); margin-bottom: 20px;">
+            Share a Zoom, Google Meet, or any meeting link with the mentee.
+          </p>
+          <form id="formMeetingLink">
+            <input type="hidden" id="meetingLinkSessionId" />
+            <div class="form-group">
+              <label class="form-label">Meeting Link (Optional)</label>
+              <input 
+                type="url" 
+                class="form-input" 
+                id="meetingLinkInput"
+                placeholder="https://zoom.us/j/123456789 or https://meet.google.com/abc-def-ghi"
+              />
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-outline" data-action="close-meeting-link">Skip</button>
+              <button type="submit" class="btn btn-primary">Accept Session</button>
+            </div>
           </form>
         </div>
       </div>
