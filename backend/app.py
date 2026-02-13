@@ -135,11 +135,11 @@ def create_app():
             db.create_all()
             app.logger.info("Database tables created successfully")
         except OperationalError as e:
-            app.logger.error("Database connection failed!")
+            app.logger.error(" Database connection failed!")
             app.logger.error(f"Error: {str(e)}")
             app.logger.error("Please check your database configuration in backend/.env")
             print("\n" + "="*60)
-            print("DATABASE CONNECTION FAILED")
+            print(" DATABASE CONNECTION FAILED")
             print("="*60)
             print("The server will start, but API endpoints requiring the database will fail.")
             print("Please check:")
@@ -305,7 +305,7 @@ def register_routes(app: Flask):
             # Auto-login after signup
             flask_session["user_id"] = user.id
             
-            app.logger.info(f"User registered successfully: {email} (ID: {user.id})")
+            app.logger.info(f" User registered successfully: {email} (ID: {user.id})")
             
             return jsonify({"user": user.to_dict_basic(), "message": "Account created successfully"}), 201
             
@@ -354,7 +354,7 @@ def register_routes(app: Flask):
             # Create session
             flask_session["user_id"] = user.id
             
-            app.logger.info(f"User logged in: {email} (ID: {user.id})")
+            app.logger.info(f" User logged in: {email} (ID: {user.id})")
             
             return jsonify({"user": user.to_dict_basic(), "message": "Login successful"})
             
@@ -370,7 +370,7 @@ def register_routes(app: Flask):
             flask_session.clear()
             
             if user_id:
-                app.logger.info(f"User logged out: ID {user_id}")
+                app.logger.info(f" User logged out: ID {user_id}")
             
             return jsonify({"message": "Logged out successfully"})
             
@@ -451,9 +451,10 @@ def register_routes(app: Flask):
         Query parameters:
             - q: Search query (searches name, interests, skills)
             - role: Filter by role (mentor, mentee, both)
+            - show_all: If true, show all users (default: only mentor/both)
         
         Returns:
-            List of users (excludes current user)
+            List of users (excludes current user, emails hidden)
         """
         try:
             current_user = get_current_user()
@@ -461,8 +462,13 @@ def register_routes(app: Flask):
             
             # Filter by role
             role = request.args.get("role", "").strip().lower()
+            show_all = request.args.get("show_all", "").lower() == "true"
+            
             if role in {"mentor", "mentee", "both"}:
                 query = query.filter(User.role == role)
+            elif not show_all:
+                # Default: only show mentors and users who can mentor (both)
+                query = query.filter(User.role.in_(["mentor", "both"]))
             
             # Search filter
             search = request.args.get("q", "").strip()
@@ -481,9 +487,28 @@ def register_routes(app: Flask):
             # Execute query
             users = query.order_by(User.created_at.desc()).all()
             
-            app.logger.info(f"Users query: Found {len(users)} users (search: '{search}', role: '{role}')")
+            # Calculate average rating for each user
+            users_data = []
+            for user in users:
+                user_dict = user.to_dict_basic()
+                # Remove email for privacy (only show in profile)
+                user_dict.pop('email', None)
+                
+                # Calculate average rating
+                feedbacks = Feedback.query.filter_by(target_user_id=user.id).all()
+                if feedbacks:
+                    avg_rating = sum(f.rating for f in feedbacks) / len(feedbacks)
+                    user_dict['average_rating'] = round(avg_rating, 1)
+                    user_dict['total_reviews'] = len(feedbacks)
+                else:
+                    user_dict['average_rating'] = None
+                    user_dict['total_reviews'] = 0
+                
+                users_data.append(user_dict)
             
-            return jsonify({"users": [u.to_dict_basic() for u in users]})
+            app.logger.info(f"Users query: Found {len(users_data)} users (search: '{search}', role: '{role}')")
+            
+            return jsonify({"users": users_data})
             
         except Exception as e:
             app.logger.error(f"Error listing users: {str(e)}")
@@ -523,6 +548,7 @@ def register_routes(app: Flask):
             topic = data.get("topic", "").strip()
             description = data.get("description", "").strip()
             scheduled_time_str = data.get("scheduled_time")
+            meeting_link = data.get("meeting_link", "").strip()
             
             # Validation
             if not mentor_id or not topic:
@@ -538,6 +564,23 @@ def register_routes(app: Flask):
             if not mentor:
                 app.logger.warning(f"Session creation failed: Mentor ID {mentor_id} not found")
                 return jsonify({"error": "Mentor not found"}), 404
+            
+            # CRITICAL: Validate mentor role
+            if mentor.role not in ["mentor", "both"]:
+                app.logger.warning(f"Session creation failed: User {mentor_id} is not a mentor (role: {mentor.role})")
+                return jsonify({"error": "This user is not available as a mentor"}), 400
+            
+            # Check for duplicate pending/accepted sessions
+            existing_session = Session.query.filter(
+                Session.requester_id == user.id,
+                Session.mentor_id == mentor_id,
+                Session.topic == topic,
+                Session.status.in_(["pending", "accepted"])
+            ).first()
+            
+            if existing_session:
+                app.logger.warning(f"Session creation failed: Duplicate session exists (ID: {existing_session.id})")
+                return jsonify({"error": "You already have a pending or accepted session with this mentor for this topic"}), 400
             
             # Parse scheduled time
             scheduled_time = None
@@ -555,6 +598,7 @@ def register_routes(app: Flask):
                 topic=topic,
                 description=description,
                 scheduled_time=scheduled_time,
+                meeting_link=meeting_link,
             )
             
             db.session.add(session_obj)
@@ -572,13 +616,14 @@ def register_routes(app: Flask):
     @app.route("/api/sessions/<int:session_id>/status", methods=["PUT"])
     @login_required
     def update_session_status(session_id):
-        """Update session status (accept/reject/complete)"""
+        """Update session status (accept/reject/complete) and optionally add meeting link"""
         try:
             user = get_current_user()
             session_obj = Session.query.get_or_404(session_id)
             
             data = request.get_json() or {}
             new_status = data.get("status")
+            meeting_link = data.get("meeting_link", "").strip()
             
             # Validate status
             if new_status not in {SessionStatus.ACCEPTED, SessionStatus.REJECTED, SessionStatus.COMPLETED}:
@@ -596,6 +641,10 @@ def register_routes(app: Flask):
                 if session_obj.status != SessionStatus.PENDING:
                     app.logger.warning(f"Invalid status transition: {session_obj.status} -> {new_status}")
                     return jsonify({"error": "Only pending sessions can be accepted or rejected"}), 400
+                
+                # When accepting, optionally add meeting link
+                if new_status == SessionStatus.ACCEPTED and meeting_link:
+                    session_obj.meeting_link = meeting_link
             
             elif new_status == SessionStatus.COMPLETED:
                 # Mentor or requester can mark as completed
@@ -643,6 +692,16 @@ def register_routes(app: Flask):
                 app.logger.warning(f"Feedback failed: Session {session_id} is not completed")
                 return jsonify({"error": "Feedback can only be given for completed sessions"}), 400
             
+            # Check if feedback already exists
+            existing_feedback = Feedback.query.filter_by(
+                session_id=session_id,
+                author_id=user.id
+            ).first()
+            
+            if existing_feedback:
+                app.logger.warning(f"Feedback failed: User {user.id} already left feedback for session {session_id}")
+                return jsonify({"error": "You have already left feedback for this session"}), 400
+            
             data = request.get_json() or {}
             rating = data.get("rating")
             comment = data.get("comment", "").strip()
@@ -676,10 +735,14 @@ def register_routes(app: Flask):
             db.session.add(feedback_obj)
             db.session.commit()
             
-            app.logger.info(f"Feedback created: ID {feedback_obj.id}, Session: {session_id}, Rating: {rating}")
+            app.logger.info(f"✅ Feedback created: ID {feedback_obj.id}, Session: {session_id}, Rating: {rating}")
             
             return jsonify({"feedback": feedback_obj.to_dict(), "message": "Feedback submitted successfully"}), 201
             
+        except IntegrityError:
+            db.session.rollback()
+            app.logger.warning(f"Feedback failed: Duplicate feedback for session {session_id}")
+            return jsonify({"error": "You have already left feedback for this session"}), 400
         except Exception as e:
             db.session.rollback()
             app.logger.error(f"Error creating feedback: {str(e)}")

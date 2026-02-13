@@ -119,6 +119,7 @@ class Session(db.Model):
     topic = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
     scheduled_time = db.Column(db.DateTime, nullable=True)
+    meeting_link = db.Column(db.String(500), nullable=True)  # Zoom/Google Meet link
 
     # Status tracking
     status = db.Column(
@@ -154,6 +155,7 @@ class Session(db.Model):
             "topic": self.topic,
             "description": self.description,
             "scheduled_time": self.scheduled_time.isoformat() if self.scheduled_time else None,
+            "meeting_link": self.meeting_link,
             "status": self.status,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
@@ -167,6 +169,9 @@ class Feedback(db.Model):
     """Session feedback and ratings model"""
     
     __tablename__ = "feedback"
+    __table_args__ = (
+        db.UniqueConstraint('session_id', 'author_id', name='unique_feedback_per_session'),
+    )
 
     # Primary fields
     id = db.Column(db.Integer, primary_key=True)
