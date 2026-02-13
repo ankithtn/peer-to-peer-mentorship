@@ -28,6 +28,7 @@ class User(db.Model):
     bio = db.Column(db.Text, nullable=True)
     interests = db.Column(db.Text, nullable=True)  # Comma-separated
     skills = db.Column(db.Text, nullable=True)     # Comma-separated
+    experience = db.Column(db.Text, nullable=True)  # Mentor experience
     role = db.Column(
         db.String(20), 
         nullable=False, 
@@ -79,6 +80,7 @@ class User(db.Model):
             "bio": self.bio,
             "interests": self.interests,
             "skills": self.skills,
+            "experience": self.experience,
             "role": self.role,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

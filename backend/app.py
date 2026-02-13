@@ -421,6 +421,9 @@ def register_routes(app: Flask):
             
             if "skills" in data:
                 user.skills = data["skills"].strip()
+
+            if "experience" in data:
+                user.experience = data["experience"].strip()
             
             if "role" in data:
                 role = data["role"].strip().lower()
