@@ -422,8 +422,15 @@ def register_routes(app: Flask):
             if "skills" in data:
                 user.skills = data["skills"].strip()
 
-            if "experience" in data:
-                user.experience = data["experience"].strip()
+            if "experience_years" in data and user.role in ("mentor", "both"):
+                try:
+                    val = data.get("experience_years")
+                    if val is None or val == "":
+                        user.experience_years = None
+                    else:
+                        user.experience_years = int(val) if int(val) >= 0 else None
+                except (TypeError, ValueError):
+                    user.experience_years = None
             
             if "role" in data:
                 role = data["role"].strip().lower()
@@ -738,7 +745,7 @@ def register_routes(app: Flask):
             db.session.add(feedback_obj)
             db.session.commit()
             
-            app.logger.info(f"✅ Feedback created: ID {feedback_obj.id}, Session: {session_id}, Rating: {rating}")
+            app.logger.info(f"Feedback created: ID {feedback_obj.id}, Session: {session_id}, Rating: {rating}")
             
             return jsonify({"feedback": feedback_obj.to_dict(), "message": "Feedback submitted successfully"}), 201
             
