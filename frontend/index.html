@@ -1,355 +1,267 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MentorLink - Peer-to-Peer Mentorship Platform</title>
+    <title>MentorLink — Peer-to-Peer Mentorship</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body>
-    <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
       <div class="spinner"></div>
     </div>
 
-    <!-- Toast Notifications -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- Navigation Bar -->
     <nav class="navbar" id="navbar">
-      <div class="container">
-        <div class="navbar-content">
-          <div class="brand">
-            <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            <span class="brand-text">MentorLink</span>
-          </div>
+      <div class="nav-inner">
+        <a href="#/" class="brand" data-action="go-home">
+          <span class="brand-text">MentorLink</span>
+        </a>
 
-          <!-- Guest Navigation (Only visible when NOT logged in) -->
-          <div class="nav-links" id="navGuest">
-            <a href="#" class="nav-link" data-action="show-login">Sign In</a>
-            <button class="btn btn-primary" data-action="show-signup">Get Started</button>
-          </div>
+        <div class="nav-links" id="navGuest">
+          <a href="#/login" class="nav-link" data-action="go-login">Sign in</a>
+          <a href="#/signup" class="btn btn-primary" data-action="go-signup">Get started</a>
+        </div>
 
-          <!-- Authenticated Navigation (Only visible when logged in) -->
-          <div class="nav-links" id="navAuth" hidden>
-            <a href="#" class="nav-link" data-view="dashboard">Dashboard</a>
-            <a href="#" class="nav-link" data-view="browse">Browse</a>
-            <a href="#" class="nav-link" data-view="sessions">Sessions</a>
-            <a href="#" class="nav-link" data-view="profile">Profile</a>
-            <button class="btn btn-ghost" id="btnLogout">Logout</button>
-          </div>
-
-          <button class="mobile-menu-btn" id="mobileMenuBtn" hidden>
-            <span></span>
-            <span></span>
-            <span></span>
-          </button>
+        <div class="nav-links" id="navAuth" hidden>
+          <a href="#/app/dashboard" class="nav-link" data-view="dashboard">Dashboard</a>
+          <a href="#/app/browse" class="nav-link" data-view="browse">Browse</a>
+          <a href="#/app/sessions" class="nav-link" data-view="sessions">Sessions</a>
+          <a href="#/app/profile" class="nav-link" data-view="profile">Profile</a>
+          <button type="button" class="btn btn-ghost" id="btnLogout">Log out</button>
         </div>
       </div>
     </nav>
 
-    <!-- Landing Page (Unauthenticated) -->
-    <div id="landingPage">
-      <!-- Hero Section -->
-      <section class="hero-minimal">
-        <div class="container">
-          <div class="hero-content-minimal">
-            <h1 class="hero-title-minimal">
-              Learn from peers<br/>who've <span class="gradient-text-minimal">been there</span>
-            </h1>
-            <p class="hero-subtitle-minimal">
-              Connect with experienced students. Share knowledge,<br/>
-              grow together, and accelerate your learning.
-            </p>
-            <div class="hero-cta-minimal">
-              <button class="btn btn-primary btn-lg" data-action="show-signup">
-                Get Started
-              </button>
-              <button class="btn btn-ghost btn-lg" data-action="show-login">
-                Sign In
-              </button>
-            </div>
+    <!-- Landing (home): guest only — only this OR login OR signup OR app is visible -->
+    <div id="landingPage" class="page-section active">
+      <section class="hero">
+        <div class="hero-inner">
+          <h1 class="hero-title">
+            Learn from peers who’ve <span class="hero-accent">been there</span>
+          </h1>
+          <p class="hero-subtitle">
+            Connect with experienced students. Share knowledge, grow together, and accelerate your learning.
+          </p>
+          <div class="hero-cta">
+            <a href="#/signup" class="btn btn-primary btn-lg" data-action="go-signup">Get started</a>
+            <a href="#/login" class="btn btn-outline btn-lg" data-action="go-login">Sign in</a>
           </div>
         </div>
       </section>
 
-      <!-- Features Section -->
       <section class="features" id="features">
         <div class="container">
-          <div class="section-header">
-            <h2 class="section-title">Everything you need to succeed</h2>
-            <p class="section-subtitle">Powerful features designed for effective peer learning</p>
-          </div>
+          <h2 class="section-title">Everything you need to succeed</h2>
+          <p class="section-subtitle">Features designed for effective peer learning</p>
           <div class="features-grid">
             <div class="feature-card">
-              <div class="feature-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <h3 class="feature-title">Smart Matching</h3>
-              <p class="feature-desc">Find the perfect mentor based on skills, interests, and availability</p>
+              <h3 class="feature-title">Smart matching</h3>
+              <p class="feature-desc">Find the right mentor by skills, interests, and availability.</p>
             </div>
             <div class="feature-card">
-              <div class="feature-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 class="feature-title">Flexible Scheduling</h3>
-              <p class="feature-desc">Book sessions at your convenience with easy calendar integration</p>
+              <h3 class="feature-title">Flexible scheduling</h3>
+              <p class="feature-desc">Book sessions when it works for you.</p>
             </div>
             <div class="feature-card">
-              <div class="feature-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
-              </div>
-              <h3 class="feature-title">Quality Feedback</h3>
-              <p class="feature-desc">Rate and review sessions to maintain high-quality mentorship</p>
+              <h3 class="feature-title">Quality feedback</h3>
+              <p class="feature-desc">Rate and review to keep mentorship high quality.</p>
             </div>
             <div class="feature-card">
-              <div class="feature-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-              <h3 class="feature-title">Diverse Topics</h3>
-              <p class="feature-desc">From DSA to web dev, find mentors for any skill you want to learn</p>
+              <h3 class="feature-title">Diverse topics</h3>
+              <p class="feature-desc">From DSA to web dev—find mentors for any skill.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- How It Works -->
-      <section class="how-it-works" id="how-it-works">
-        <div class="container">
-          <div class="section-header">
-            <h2 class="section-title">How it works</h2>
-            <p class="section-subtitle">Get started in just a few simple steps</p>
-          </div>
-          <div class="steps">
-            <div class="step">
-              <div class="step-number">1</div>
-              <h3 class="step-title">Create Your Profile</h3>
-              <p class="step-desc">Sign up and tell us about your skills, interests, and learning goals</p>
-            </div>
-            <div class="step-connector"></div>
-            <div class="step">
-              <div class="step-number">2</div>
-              <h3 class="step-title">Find Your Mentor</h3>
-              <p class="step-desc">Browse profiles and find mentors who match your needs</p>
-            </div>
-            <div class="step-connector"></div>
-            <div class="step">
-              <div class="step-number">3</div>
-              <h3 class="step-title">Book a Session</h3>
-              <p class="step-desc">Request a session and schedule it at a convenient time</p>
-            </div>
-            <div class="step-connector"></div>
-            <div class="step">
-              <div class="step-number">4</div>
-              <h3 class="step-title">Learn & Grow</h3>
-              <p class="step-desc">Connect, learn, and leave feedback to help others</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- CTA Section -->
       <section class="cta-section">
         <div class="container">
-          <div class="cta-content">
-            <h2 class="cta-title">Ready to accelerate your learning?</h2>
-            <p class="cta-subtitle">Join thousands of students already learning together</p>
-            <button class="btn btn-primary btn-lg" data-action="show-signup">
-              Get Started Free
-            </button>
-          </div>
+          <h2 class="cta-title">Ready to accelerate your learning?</h2>
+          <p class="cta-subtitle">Join students already learning together.</p>
+          <a href="#/signup" class="btn btn-primary btn-lg" data-action="go-signup">Get started free</a>
         </div>
       </section>
     </div>
 
-    <!-- App Interface (Authenticated) -->
-    <div id="appInterface" hidden>
+    <!-- Full-page Login — separate "page", only visible when route is #/login -->
+    <div class="auth-fullpage page-section" id="loginPage">
+      <div class="auth-fullpage-inner">
+        <a href="#/" class="auth-back" data-action="go-home">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back to home
+        </a>
+        <div class="auth-card">
+          <h1 class="auth-card-title">Sign in</h1>
+          <p class="auth-card-subtitle">Sign in to continue to MentorLink</p>
+          <form class="auth-form" id="formLogin">
+            <div class="form-group">
+              <label class="form-label" for="loginEmail">Email</label>
+              <input id="loginEmail" type="email" class="form-input" name="email" required placeholder="you@example.com" autocomplete="email" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="loginPassword">Password</label>
+              <input id="loginPassword" type="password" class="form-input" name="password" required placeholder="••••••••" autocomplete="current-password" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+            <div class="form-message" id="loginMessage"></div>
+          </form>
+          <p class="auth-switch">
+            Don’t have an account? <a href="#/signup" data-action="go-signup">Get started</a>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full-page Signup — separate "page", only visible when route is #/signup -->
+    <div class="auth-fullpage page-section" id="signupPage">
+      <div class="auth-fullpage-inner">
+        <a href="#/" class="auth-back" data-action="go-home">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back to home
+        </a>
+        <div class="auth-card">
+          <h1 class="auth-card-title">Create your account</h1>
+          <p class="auth-card-subtitle">Start your learning journey today</p>
+          <form class="auth-form" id="formSignup">
+            <div class="form-group">
+              <label class="form-label" for="signupName">Full name</label>
+              <input id="signupName" type="text" class="form-input" name="name" required placeholder="Jordan Smith" autocomplete="name" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="signupEmail">Email</label>
+              <input id="signupEmail" type="email" class="form-input" name="email" required placeholder="you@example.com" autocomplete="email" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="signupPassword">Password</label>
+              <input id="signupPassword" type="password" class="form-input" name="password" required placeholder="Create a password" autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="signupRole">I want to…</label>
+              <select id="signupRole" class="form-input" name="role">
+                <option value="mentee">Learn from others (Mentee)</option>
+                <option value="mentor">Share my knowledge (Mentor)</option>
+                <option value="both">Both</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Skills (optional)</label>
+                <input type="text" class="form-input" name="skills" placeholder="Python, React, etc." />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Interests (optional)</label>
+                <input type="text" class="form-input" name="interests" placeholder="AI, Web dev, etc." />
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Create account</button>
+            <div class="form-message" id="signupMessage"></div>
+          </form>
+          <p class="auth-switch">
+            Already have an account? <a href="#/login" data-action="go-login">Sign in</a>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- App (dashboard, browse, sessions, profile) — only when logged in, separate from landing/auth -->
+    <div id="appInterface" class="page-section">
       <div class="app-container">
-        <!-- Sidebar -->
         <aside class="sidebar">
           <div class="sidebar-header">
             <div class="user-profile">
               <div class="user-avatar" id="userAvatar">?</div>
               <div class="user-info">
-                <div class="user-name" id="userName">Loading...</div>
+                <div class="user-name" id="userName">—</div>
                 <div class="user-role" id="userRole">—</div>
               </div>
             </div>
           </div>
-
           <nav class="sidebar-nav">
-            <a href="#" class="sidebar-link active" data-view="dashboard">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              <span>Dashboard</span>
-            </a>
-            <a href="#" class="sidebar-link" data-view="browse">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <span>Browse Mentors</span>
-            </a>
-            <a href="#" class="sidebar-link" data-view="sessions">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span>Sessions</span>
-            </a>
-            <a href="#" class="sidebar-link" data-view="profile">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span>My Profile</span>
-            </a>
+            <a href="#/app/dashboard" class="sidebar-link active" data-view="dashboard">Dashboard</a>
+            <a href="#/app/browse" class="sidebar-link" data-view="browse">Browse</a>
+            <a href="#/app/sessions" class="sidebar-link" data-view="sessions">Sessions</a>
+            <a href="#/app/profile" class="sidebar-link" data-view="profile">Profile</a>
           </nav>
         </aside>
 
-        <!-- Main Content -->
         <main class="main-content">
-          <!-- Dashboard View -->
           <div class="view" id="viewDashboard">
             <div class="view-header">
               <h1 class="view-title">Dashboard</h1>
-              <p class="view-subtitle">Welcome back! Here's your overview</p>
+              <p class="view-subtitle">Welcome back. Here’s your overview.</p>
             </div>
-
             <div class="dashboard-stats">
               <div class="stat-card">
-                <div class="stat-card-icon stat-card-icon-primary">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                </div>
-                <div class="stat-card-content">
-                  <div class="stat-card-value" id="statTotalSessions">0</div>
-                  <div class="stat-card-label">Total Sessions</div>
-                </div>
+                <div class="stat-value" id="statTotalSessions">0</div>
+                <div class="stat-label">Total sessions</div>
               </div>
               <div class="stat-card">
-                <div class="stat-card-icon stat-card-icon-warning">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div class="stat-card-content">
-                  <div class="stat-card-value" id="statPending">0</div>
-                  <div class="stat-card-label">Pending Requests</div>
-                </div>
+                <div class="stat-value" id="statPending">0</div>
+                <div class="stat-label">Pending</div>
               </div>
               <div class="stat-card">
-                <div class="stat-card-icon stat-card-icon-success">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div class="stat-card-content">
-                  <div class="stat-card-value" id="statCompleted">0</div>
-                  <div class="stat-card-label">Completed</div>
-                </div>
+                <div class="stat-value" id="statCompleted">0</div>
+                <div class="stat-label">Completed</div>
               </div>
             </div>
-
-            <div class="dashboard-content" id="dashboardContent">
-              <!-- Role-specific content will be inserted here by JavaScript -->
-            </div>
+            <div class="dashboard-content" id="dashboardContent"></div>
           </div>
 
-          <!-- Browse View -->
           <div class="view" id="viewBrowse" hidden>
             <div class="view-header">
-              <h1 class="view-title">Browse Mentors</h1>
-              <p class="view-subtitle">Find the perfect mentor for your learning journey</p>
+              <h1 class="view-title">Browse mentors</h1>
+              <p class="view-subtitle">Find a mentor for your goals.</p>
             </div>
-
             <div class="browse-filters">
-              <div class="search-bar">
-                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input 
-                  type="text" 
-                  class="search-input" 
-                  id="searchInput" 
-                  placeholder="Search by name, skill, or interest..."
-                />
-              </div>
+              <input type="text" class="search-input" id="searchInput" placeholder="Search by name, skill, interest…" />
               <select class="filter-select" id="roleFilter">
-                <option value="">All Roles</option>
+                <option value="">All roles</option>
                 <option value="mentor">Mentor</option>
                 <option value="mentee">Mentee</option>
                 <option value="both">Both</option>
               </select>
-              <button class="btn btn-outline" id="btnRefresh">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Refresh
-              </button>
+              <button type="button" class="btn btn-outline" id="btnRefresh">Refresh</button>
             </div>
-
-            <div class="mentors-grid" id="mentorsList">
-              <!-- Mentor cards will be inserted here -->
-            </div>
-
+            <div class="mentors-grid" id="mentorsList"></div>
             <div class="empty-state" id="mentorsEmpty" hidden>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
               <p>No mentors found</p>
             </div>
           </div>
 
-          <!-- Sessions View -->
           <div class="view" id="viewSessions" hidden>
             <div class="view-header">
-              <h1 class="view-title">My Sessions</h1>
-              <p class="view-subtitle">Manage your mentorship sessions</p>
+              <h1 class="view-title">Sessions</h1>
+              <p class="view-subtitle">Manage your mentorship sessions.</p>
             </div>
-
             <div class="sessions-tabs">
-              <button class="tab-btn active" data-tab="all">All Sessions</button>
-              <button class="tab-btn" data-tab="pending">Pending</button>
-              <button class="tab-btn" data-tab="accepted">Accepted</button>
-              <button class="tab-btn" data-tab="completed">Completed</button>
+              <button type="button" class="tab-btn active" data-tab="all">All</button>
+              <button type="button" class="tab-btn" data-tab="pending">Pending</button>
+              <button type="button" class="tab-btn" data-tab="accepted">Accepted</button>
+              <button type="button" class="tab-btn" data-tab="completed">Completed</button>
             </div>
-
-            <div class="sessions-list" id="sessionsList">
-              <!-- Session cards will be inserted here -->
-            </div>
-
+            <div class="sessions-list" id="sessionsList"></div>
             <div class="empty-state" id="sessionsEmpty" hidden>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
               <p>No sessions yet</p>
-              <button class="btn btn-primary" data-view="browse">Browse Mentors</button>
+              <button type="button" class="btn btn-primary" data-view="browse">Browse mentors</button>
             </div>
           </div>
 
-          <!-- Profile View -->
           <div class="view" id="viewProfile" hidden>
             <div class="view-header">
-              <h1 class="view-title">My Profile</h1>
-              <p class="view-subtitle">Update your information and preferences</p>
+              <h1 class="view-title">Profile</h1>
+              <p class="view-subtitle">Update your information.</p>
             </div>
-
             <form class="profile-form" id="formProfile">
               <div class="form-section">
-                <h3 class="form-section-title">Basic Information</h3>
+                <h3 class="form-section-title">Basic information</h3>
                 <div class="form-row">
                   <div class="form-group">
-                    <label class="form-label">Full Name</label>
+                    <label class="form-label">Full name</label>
                     <input type="text" class="form-input" name="name" required />
                   </div>
                   <div class="form-group">
@@ -363,34 +275,35 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Bio</label>
-                  <textarea class="form-input" name="bio" rows="4" placeholder="Tell others about yourself..."></textarea>
+                  <textarea class="form-input" name="bio" rows="4" placeholder="Tell others about yourself…"></textarea>
                 </div>
               </div>
-
               <div class="form-section">
-                <h3 class="form-section-title">Skills & Interests</h3>
+                <h3 class="form-section-title">Skills & interests</h3>
                 <div class="form-row">
                   <div class="form-group">
                     <label class="form-label">Skills (comma-separated)</label>
-                    <input type="text" class="form-input" name="skills" placeholder="e.g., Python, React, Machine Learning" />
+                    <input type="text" class="form-input" name="skills" placeholder="e.g. Python, React" />
                   </div>
                   <div class="form-group">
                     <label class="form-label">Interests (comma-separated)</label>
-                    <input type="text" class="form-input" name="interests" placeholder="e.g., Web Development, AI, Data Science" />
+                    <input type="text" class="form-input" name="interests" placeholder="e.g. Web dev, AI" />
                   </div>
                 </div>
               </div>
-
               <div class="form-section" id="experienceSection">
-                <h3 class="form-section-title">Experience (Mentors Only)</h3>
+                <h3 class="form-section-title">Experience (mentors)</h3>
                 <div class="form-group">
-                  <label class="form-label">Your Experience</label>
-                  <textarea class="form-input" name="experience" rows="4" placeholder="Share your experience, achievements, projects..."></textarea>
+                  <label class="form-label">Years of experience</label>
+                  <input type="number" class="form-input" name="experience_years" min="0" max="50" placeholder="e.g. 5" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Your experience</label>
+                  <textarea class="form-input" name="experience" rows="4" placeholder="Achievements, projects…"></textarea>
                 </div>
               </div>
-
               <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <button type="submit" class="btn btn-primary">Save changes</button>
               </div>
               <div class="form-message" id="profileMessage"></div>
             </form>
@@ -399,112 +312,35 @@
       </div>
     </div>
 
-    <!-- Auth Modal -->
-    <div class="modal" id="authModal">
-      <div class="modal-overlay" data-action="close-modal"></div>
-      <div class="modal-content modal-auth">
-        <button class="modal-close" data-action="close-modal">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
-        <div class="auth-tabs">
-          <button class="auth-tab active" data-auth-tab="login">Login</button>
-          <button class="auth-tab" data-auth-tab="signup">Sign Up</button>
-        </div>
-
-        <!-- Login Form -->
-        <div class="auth-panel" id="panelLogin">
-          <h2 class="auth-title">Welcome back</h2>
-          <p class="auth-subtitle">Sign in to continue learning</p>
-          <form class="auth-form" id="formLogin">
-            <div class="form-group">
-              <label class="form-label">Email</label>
-              <input type="email" class="form-input" name="email" required placeholder="you@example.com" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Password</label>
-              <input type="password" class="form-input" name="password" required placeholder="••••••••" />
-            </div>
-            <button type="submit" class="btn btn-primary btn-block">Sign In</button>
-            <div class="form-message" id="loginMessage"></div>
-          </form>
-        </div>
-
-        <!-- Signup Form -->
-        <div class="auth-panel" id="panelSignup" hidden>
-          <h2 class="auth-title">Create your account</h2>
-          <p class="auth-subtitle">Start your learning journey today</p>
-          <form class="auth-form" id="formSignup">
-            <div class="form-group">
-              <label class="form-label">Full Name</label>
-              <input type="text" class="form-input" name="name" required placeholder="John Doe" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Email</label>
-              <input type="email" class="form-input" name="email" required placeholder="you@example.com" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Password</label>
-              <input type="password" class="form-input" name="password" required placeholder="Create a password" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">I want to...</label>
-              <select class="form-input" name="role">
-                <option value="mentee">Learn from others (Mentee)</option>
-                <option value="mentor">Share my knowledge (Mentor)</option>
-                <option value="both">Both</option>
-              </select>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Skills (optional)</label>
-                <input type="text" class="form-input" name="skills" placeholder="Python, React, etc." />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Interests (optional)</label>
-                <input type="text" class="form-input" name="interests" placeholder="AI, Web Dev, etc." />
-              </div>
-            </div>
-            <button type="submit" class="btn btn-primary btn-block">Create Account</button>
-            <div class="form-message" id="signupMessage"></div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Request Session Modal -->
+    <!-- Modals (request session, feedback, meeting link) -->
     <div class="modal" id="requestModal">
       <div class="modal-overlay" data-action="close-request"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h3 class="modal-title">Request a Session</h3>
-          <button class="modal-close" data-action="close-request">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+          <h3 class="modal-title">Request a session</h3>
+          <button type="button" class="modal-close" data-action="close-request" aria-label="Close">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
         <div class="modal-body">
-          <div class="mentor-info" id="requestMentorInfo"></div>
+          <div id="requestMentorInfo"></div>
           <form id="formRequest">
             <input type="hidden" name="mentor_id" />
             <div class="form-group">
               <label class="form-label">Topic</label>
-              <input type="text" class="form-input" name="topic" required placeholder="e.g., React Hooks, SQL Joins" />
+              <input type="text" class="form-input" name="topic" required placeholder="e.g. React Hooks" />
             </div>
             <div class="form-group">
               <label class="form-label">Description (optional)</label>
-              <textarea class="form-input" name="description" rows="3" placeholder="What would you like to learn?"></textarea>
+              <textarea class="form-input" name="description" rows="3" placeholder="What do you want to learn?"></textarea>
             </div>
             <div class="form-group">
-              <label class="form-label">Scheduled Time (optional)</label>
+              <label class="form-label">Scheduled time (optional)</label>
               <input type="datetime-local" class="form-input" name="scheduled_time" />
             </div>
             <div class="form-actions">
               <button type="button" class="btn btn-outline" data-action="close-request">Cancel</button>
-              <button type="submit" class="btn btn-primary">Send Request</button>
+              <button type="submit" class="btn btn-primary">Send request</button>
             </div>
             <div class="form-message" id="requestMessage"></div>
           </form>
@@ -512,20 +348,17 @@
       </div>
     </div>
 
-    <!-- Feedback Modal -->
     <div class="modal" id="feedbackModal">
       <div class="modal-overlay" data-action="close-feedback"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h3 class="modal-title">Leave Feedback</h3>
-          <button class="modal-close" data-action="close-feedback">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+          <h3 class="modal-title">Leave feedback</h3>
+          <button type="button" class="modal-close" data-action="close-feedback" aria-label="Close">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
         <div class="modal-body">
-          <div class="session-info" id="feedbackSessionInfo"></div>
+          <div id="feedbackSessionInfo"></div>
           <form id="formFeedback">
             <input type="hidden" name="session_id" />
             <div class="form-group">
@@ -541,11 +374,11 @@
             </div>
             <div class="form-group">
               <label class="form-label">Comment (optional)</label>
-              <textarea class="form-input" name="comment" rows="4" placeholder="Share your experience..."></textarea>
+              <textarea class="form-input" name="comment" rows="4" placeholder="Share your experience…"></textarea>
             </div>
             <div class="form-actions">
               <button type="button" class="btn btn-outline" data-action="close-feedback">Cancel</button>
-              <button type="submit" class="btn btn-primary">Submit Feedback</button>
+              <button type="submit" class="btn btn-primary">Submit feedback</button>
             </div>
             <div class="form-message" id="feedbackMessage"></div>
           </form>
@@ -553,42 +386,49 @@
       </div>
     </div>
 
-    <!-- Meeting Link Modal -->
     <div class="modal" id="meetingLinkModal">
       <div class="modal-overlay" data-action="close-meeting-link"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h3 class="modal-title">Add Meeting Link</h3>
-          <button class="modal-close" data-action="close-meeting-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+          <h3 class="modal-title">Add meeting link</h3>
+          <button type="button" class="modal-close" data-action="close-meeting-link" aria-label="Close">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
         <div class="modal-body">
-          <p style="color: var(--gray-600); margin-bottom: 20px;">
-            Share a Zoom, Google Meet, or any meeting link with the mentee.
-          </p>
+          <p class="modal-description">Share a Zoom, Google Meet, or any meeting link with the mentee.</p>
           <form id="formMeetingLink">
             <input type="hidden" id="meetingLinkSessionId" />
             <div class="form-group">
-              <label class="form-label">Meeting Link (Optional)</label>
-              <input 
-                type="url" 
-                class="form-input" 
-                id="meetingLinkInput"
-                placeholder="https://zoom.us/j/123456789 or https://meet.google.com/abc-def-ghi"
-              />
+              <label class="form-label">Meeting link (optional)</label>
+              <input type="url" class="form-input" id="meetingLinkInput" placeholder="https://meet.google.com/…" />
             </div>
             <div class="form-actions">
               <button type="button" class="btn btn-outline" data-action="close-meeting-link">Skip</button>
-              <button type="submit" class="btn btn-primary">Accept Session</button>
+              <button type="submit" class="btn btn-primary">Accept session</button>
             </div>
           </form>
         </div>
       </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- View mentor feedback modal (clean UI instead of browser alert) -->
+    <div class="modal" id="viewFeedbackModal">
+      <div class="modal-overlay" data-action="close-view-feedback"></div>
+      <div class="modal-content modal-feedback-list">
+        <div class="modal-header">
+          <h3 class="modal-title">Mentor feedback</h3>
+          <button type="button" class="modal-close" data-action="close-view-feedback" aria-label="Close">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="view-feedback-subtitle" id="viewFeedbackSubtitle">Reviews from mentees</p>
+          <div class="feedback-list" id="viewFeedbackList"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
   </body>
 </html>
