@@ -25,18 +25,21 @@ import {
 // --- View switching (within app) ---
 
 export function switchView(viewName) {
+  // Prevent mentors from accessing Browse (they shouldn't request sessions)
+  if (viewName === 'browse' && state.user?.role === 'mentor') {
+    showToast('Mentors cannot browse or request sessions. You receive requests from mentees in your Dashboard.', 'info');
+    switchView('dashboard');
+    return;
+  }
+  
   state.currentView = viewName;
-
   $$('.view').forEach((view) => (view.hidden = true));
-
   const id = `view${viewName.charAt(0).toUpperCase() + viewName.slice(1)}`;
   const viewEl = $(`#${id}`);
   if (viewEl) viewEl.hidden = false;
-
   $$('.sidebar-link').forEach((link) => {
     link.classList.toggle('active', link.dataset.view === viewName);
   });
-
   loadViewData(viewName);
 }
 

@@ -24,4 +24,18 @@ export function updateUserProfile(user) {
   }
   if (nameEl) nameEl.textContent = user?.name ?? '—';
   if (roleEl) roleEl.textContent = user?.role ?? '—';
+  
+  // Hide Browse links for pure mentors (they can't request sessions)
+  const browseSidebarLink = $('#browseMentorsLink');
+  const browseNavLink = $('#navBrowseLink');
+  
+  if (user?.role === 'mentor') {
+    // Pure mentors: Hide browse completely
+    if (browseSidebarLink) browseSidebarLink.style.display = 'none';
+    if (browseNavLink) browseNavLink.style.display = 'none';
+  } else {
+    // Mentees and "both": Show browse
+    if (browseSidebarLink) browseSidebarLink.style.display = 'flex';
+    if (browseNavLink) browseNavLink.style.display = 'block';
+  }
 }
