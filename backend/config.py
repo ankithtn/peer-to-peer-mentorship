@@ -23,7 +23,6 @@ class Config:
     # =====================================
     
     # Secret key for session encryption
-    # IMPORTANT: Change this in production!
     SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
     
     # Password requirements
@@ -47,7 +46,7 @@ class Config:
         f"mysql+pymysql://{DB_USER}:{_DB_PASSWORD_ENC}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     )
     
-    # Disable modification tracking (improves performance)
+    # Disable modification tracking 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Database connection pool settings
@@ -64,7 +63,7 @@ class Config:
     DEBUG = os.getenv("FLASK_DEBUG", "True").lower() in ("true", "1", "yes")
     
     # Session settings
-    SESSION_COOKIE_SECURE = FLASK_ENV == "production"  # HTTPS only in production
+    SESSION_COOKIE_SECURE = FLASK_ENV == "production" 
     SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access
     SESSION_COOKIE_SAMESITE = "Lax"  # CSRF protection
     PERMANENT_SESSION_LIFETIME = 86400  # 24 hours

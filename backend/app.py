@@ -24,9 +24,7 @@ from config import config
 from models import db, User, Session, SessionStatus, Feedback
 
 
-# =====================================
 # LOGGING CONFIGURATION
-# =====================================
 
 def setup_logging(app):
     """Configure application logging"""
@@ -69,9 +67,7 @@ def setup_logging(app):
     app.logger.info("="*60)
 
 
-# =====================================
 # PASSWORD VALIDATION
-# =====================================
 
 def validate_password(password):
     """
@@ -104,9 +100,7 @@ def validate_password(password):
     return True, None
 
 
-# =====================================
 # APP FACTORY
-# =====================================
 
 def create_app():
     """Create and configure the Flask application"""
@@ -156,9 +150,7 @@ def create_app():
     return app
 
 
-# =====================================
 # AUTHENTICATION DECORATOR
-# =====================================
 
 def login_required(fn):
     """Decorator to require authentication for routes"""
@@ -180,18 +172,14 @@ def get_current_user():
     return User.query.get(user_id)
 
 
-# =====================================
 # ROUTE REGISTRATION
-# =====================================
 
 def register_routes(app: Flask):
     """Register all application routes"""
     
     frontend_dir = os.path.abspath(os.path.join(app.root_path, "..", "frontend"))
     
-    # =====================================
     # FRONTEND ROUTES
-    # =====================================
     
     @app.route("/")
     def index():
@@ -203,9 +191,7 @@ def register_routes(app: Flask):
         """Serve frontend static files (CSS, JS, images)"""
         return send_from_directory(frontend_dir, filename)
     
-    # =====================================
     # HEALTH CHECK
-    # =====================================
     
     @app.route("/api/health", methods=["GET"])
     def health():
@@ -219,9 +205,8 @@ def register_routes(app: Flask):
             app.logger.error(f"Health check failed: {str(e)}")
             return jsonify({"ok": False, "db": "down", "error": str(e)}), 500
     
-    # =====================================
+     
     # AUTHENTICATION ROUTES
-    # =====================================
     
     @app.route("/api/auth/signup", methods=["POST"])
     def signup():
@@ -392,9 +377,8 @@ def register_routes(app: Flask):
             app.logger.error(f"Error fetching current user: {str(e)}")
             return jsonify({"user": None})
     
-    # =====================================
     # PROFILE ROUTES
-    # =====================================
+
     
     @app.route("/api/profile", methods=["GET", "PUT"])
     @login_required
@@ -448,9 +432,7 @@ def register_routes(app: Flask):
             app.logger.error(f"Error updating profile: {str(e)}")
             return jsonify({"error": "Failed to update profile"}), 500
     
-    # =====================================
     # USER ROUTES
-    # =====================================
     
     @app.route("/api/users", methods=["GET"])
     @login_required
@@ -524,9 +506,7 @@ def register_routes(app: Flask):
             app.logger.error(f"Error listing users: {str(e)}")
             return jsonify({"error": "Failed to fetch users"}), 500
     
-    # =====================================
     # SESSION ROUTES
-    # =====================================
     
     @app.route("/api/sessions", methods=["GET", "POST"])
     @login_required
@@ -575,7 +555,7 @@ def register_routes(app: Flask):
                 app.logger.warning(f"Session creation failed: Mentor ID {mentor_id} not found")
                 return jsonify({"error": "Mentor not found"}), 404
             
-            # CRITICAL: Validate mentor role
+            #Validate mentor role
             if mentor.role not in ["mentor", "both"]:
                 app.logger.warning(f"Session creation failed: User {mentor_id} is not a mentor (role: {mentor.role})")
                 return jsonify({"error": "This user is not available as a mentor"}), 400
@@ -680,9 +660,7 @@ def register_routes(app: Flask):
             app.logger.error(f"Error updating session status: {str(e)}")
             return jsonify({"error": "Failed to update session status"}), 500
     
-    # =====================================
     # FEEDBACK ROUTES
-    # =====================================
     
     @app.route("/api/sessions/<int:session_id>/feedback", methods=["POST"])
     @login_required
@@ -780,9 +758,7 @@ def register_routes(app: Flask):
             return jsonify({"error": "Failed to fetch feedback"}), 500
 
 
-# =====================================
 # APPLICATION ENTRY POINT
-# =====================================
 
 app = create_app()
 
