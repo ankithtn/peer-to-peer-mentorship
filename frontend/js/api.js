@@ -1,5 +1,5 @@
 /**
- * API client for Peer-to-Peer Mentorship Platform
+ * API client
  */
 
 const API = {

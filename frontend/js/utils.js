@@ -63,7 +63,7 @@ export function initials(name) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-/** Light avatar colors (WhatsApp-style), consistent per user id */
+/** Light avatar colors, consistent per user id */
 const AVATAR_COLORS = [
   '#E3F2FD', '#E8F5E9', '#FFF3E0', '#FCE4EC', '#F3E5F5',
   '#E0F7FA', '#EFEBE9', '#E8EAF6', '#E0F2F1', '#FFF8E1',
