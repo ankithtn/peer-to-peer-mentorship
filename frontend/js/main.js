@@ -25,7 +25,7 @@ import {
 // --- View switching (within app) ---
 
 export function switchView(viewName) {
-  // Prevent mentors from accessing Browse (they shouldn't request sessions)
+  // Prevent mentors from accessing Browse
   if (viewName === 'browse' && state.user?.role === 'mentor') {
     showToast('Mentors cannot browse or request sessions. You receive requests from mentees in your Dashboard.', 'info');
     switchView('dashboard');
