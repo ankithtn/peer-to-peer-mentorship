@@ -1,6 +1,6 @@
 # Peer-to-Peer Study / Mentorship Platform
 
-Minimal full-stack mentorship platform built with:
+Full-stack mentorship platform built with:
 
 - **Frontend**: HTML, CSS, JavaScript (vanilla)
 - **Backend**: Python, Flask, SQLAlchemy
