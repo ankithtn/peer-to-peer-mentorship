@@ -665,7 +665,11 @@ img {
 .sidebar-link svg {
   width: 20px;
   height: 20px;
+  min-width: 20px;
   stroke-width: 2;
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: all var(--transition);
 }
 
 .sidebar-link:hover {
@@ -673,10 +677,21 @@ img {
   color: var(--black);
 }
 
+
+
 .sidebar-link.active {
   background: var(--gray-50);
   color: var(--black);
   border-left-color: var(--primary);
+}
+
+.sidebar-link.active svg {
+  opacity: 1;
+  color: var(--primary);
+}
+
+.sidebar-link span {
+  line-height: 1;
 }
 
 /* Main Content */
